@@ -1,0 +1,32 @@
+[
+    {
+        "codigo": 1,
+        "nome": "Jeff",
+        "cidade": "Caetité",
+        "telefone": "77999999999"
+    },
+    {
+        "codigo": 2,
+        "nome": "Theo",
+        "cidade": "Caetite",
+        "telefone": "77999999998"
+    },
+    {
+        "codigo": 3,
+        "nome": "Solar Bahia Eng",
+        "cidade": "Salvador",
+        "telefone": "77999999999"
+    },
+    {
+        "codigo": 4,
+        "nome": "Nordeste Solar",
+        "cidade": "Vit da Conquista",
+        "telefone": "77999999999"
+    },
+    {
+        "codigo": 5,
+        "nome": "Comercial Solar ",
+        "cidade": "Guanambi",
+        "telefone": "77999999999"
+    }
+]

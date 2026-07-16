@@ -1,0 +1,30 @@
+[
+    {
+        "codigo": 1,
+        "cliente": 1,
+        "dimensionamento": {
+            "consumo_medio_kwh": 500.0,
+            "potencia_prevista_kwp": 4.4
+        },
+        "modulos": {
+            "quantidade": 8,
+            "fabricante": "Trina"
+        },
+        "inversores": {
+            "quantidade": 1,
+            "fabricante": "SunGrow",
+            "tensao": "220"
+        },
+        "local_instalacao": {
+            "codigo_uc": "11111111111",
+            "distribuidora": "Coelba",
+            "tipo_telhado": "Metálico"
+        },
+        "comercial": {
+            "valor_total": 95000.0,
+            "validade_dias": 30,
+            "prazo_instalacao_dias": 45
+        },
+        "status": "Convertido em projeto"
+    }
+]

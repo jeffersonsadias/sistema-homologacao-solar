@@ -1,0 +1,42 @@
+[
+    {
+        "codigo": 1,
+        "cliente": 1,
+        "distribuidora": "Coelba",
+        "potencia": 5.6,
+        "status": "Documentação recebida"
+    },
+    {
+        "codigo": 2,
+        "cliente": 2,
+        "distribuidora": "Coelba",
+        "potencia": 10.2,
+        "status": "Documentação recebida"
+    },
+    {
+        "codigo": 3,
+        "cliente": 1,
+        "distribuidora": "Coelba",
+        "potencia": 5.55,
+        "status": "Aguardando documentação"
+    },
+    {
+        "codigo": 4,
+        "cliente": 1,
+        "orcamento_origem": 1,
+        "distribuidora": "Coelba",
+        "potencia": 4.4,
+        "codigo_uc": "11111111111",
+        "tipo_telhado": "Metálico",
+        "modulos": {
+            "quantidade": 8,
+            "fabricante": "Trina"
+        },
+        "inversores": {
+            "quantidade": 1,
+            "fabricante": "SunGrow",
+            "tensao": "220"
+        },
+        "status": "Aguardando documentação"
+    }
+]
