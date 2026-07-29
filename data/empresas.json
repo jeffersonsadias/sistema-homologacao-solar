@@ -1,0 +1,13 @@
+[
+    {
+        "codigo": 1,
+        "razao_social": "Sauber Empreendimentos Ltda",
+        "nome_fantasia": "Sauber",
+        "cnpj": "24581624000108",
+        "email": "contato@sauberempreendimentos.com.br",
+        "telefone": "77991692009",
+        "situacao": "ATIVA",
+        "data_cadastro": "2026-07-28T14:00:29",
+        "data_atualizacao": "2026-07-28T14:02:29"
+    }
+]

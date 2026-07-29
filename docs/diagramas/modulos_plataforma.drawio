@@ -1,0 +1,33 @@
+                    SolarCore Platform
+
+──────────────────────────────────────────────
+
+ Gestão Corporativa
+
+    Empresas
+    Usuários
+    Permissões
+
+──────────────────────────────────────────────
+
+ Módulos de Negócio
+
+    Homologação Solar
+    CRM
+    Clientes
+    Projetos
+    Financeiro
+    Estoque
+    Instalações
+    Pós-venda
+
+──────────────────────────────────────────────
+
+ Infraestrutura
+
+    Persistência
+    APIs
+    Logs
+    Auditoria
+    Notificações
+    Autenticação

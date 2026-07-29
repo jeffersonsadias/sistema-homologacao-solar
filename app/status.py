@@ -1,101 +1,26 @@
-STATUS_PROJETO = {
-    1: "Aguardando documentação",
-    2: "Documentação recebida",
-    3: "Em análise pela distribuidora",
-    4: "Correção solicitada",
-    5: "Aprovado",
-    6: "Instalação concluída",
-    7: "Vistoria solicitada",
-    8: "Vistoria aprovada",
-    9: "Homologado",
-    10: "Cancelado"
-}
+"""
+Fachada pública dos status de Projeto.
 
-STATUS_INICIAL = STATUS_PROJETO[1]
+Preserva compatibilidade com módulos que utilizam:
 
-TRANSICOES_PERMITIDAS = {
-    "Aguardando documentação": [
-        "Documentação recebida",
-        "Cancelado"
-    ],
+- STATUS_PROJETO;
+- STATUS_INICIAL;
+- TRANSICOES_PERMITIDAS;
+- obter_status();
+- status_valido();
+- transicao_permitida();
+- exibir_status().
+"""
 
-    "Documentação recebida": [
-        "Em análise pela distribuidora",
-        "Cancelado"
-    ],
+from app.dominio.status import (
+    STATUS_PROJETO,
+    STATUS_INICIAL,
+    TRANSICOES_PERMITIDAS,
+    obter_status,
+    status_valido,
+    transicao_permitida,
+)
 
-    "Em análise pela distribuidora": [
-        "Correção solicitada",
-        "Aprovado",
-        "Cancelado"
-    ],
-
-    "Correção solicitada": [
-        "Documentação recebida",
-        "Cancelado"
-    ],
-
-    "Aprovado": [
-        "Instalação concluída",
-        "Cancelado"
-    ],
-
-    "Instalação concluída": [
-        "Vistoria solicitada",
-        "Cancelado"
-    ],
-
-    "Vistoria solicitada": [
-        "Vistoria aprovada",
-        "Correção solicitada",
-        "Cancelado"
-    ],
-
-    "Vistoria aprovada": [
-        "Homologado",
-        "Cancelado"
-    ],
-
-    "Homologado": [],
-
-    "Cancelado": []
-}
-
-
-def exibir_status():
-    """
-    Exibe todos os status disponíveis no sistema.
-    """
-
-    print("\n--- STATUS DISPONÍVEIS ---")
-
-    for codigo, descricao in STATUS_PROJETO.items():
-        print(f"{codigo} - {descricao}")
-
-
-def obter_status(codigo):
-    """
-    Recebe o código digitado pelo usuário e retorna
-    a descrição correspondente do status.
-    """
-
-    return STATUS_PROJETO.get(codigo)
-
-
-def status_valido(codigo):
-    """
-    Verifica se o código informado existe dentro
-    dos status permitidos.
-    """
-
-    return codigo in STATUS_PROJETO
-
-
-def transicao_permitida(status_atual, novo_status):
-    """
-    Verifica se a mudança de um status para outro é permitida.
-    """
-
-    proximos_status = TRANSICOES_PERMITIDAS.get(status_atual, [])
-
-    return novo_status in proximos_status
+from app.interface.status_interface import (
+    exibir_status,
+)

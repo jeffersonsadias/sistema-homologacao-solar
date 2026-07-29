@@ -1,0 +1,17 @@
+                              SolarCore Platform
+────────────────────────────────────────────────────────────────
+
+                    Interface (CLI / Web / API)
+                              │
+                              ▼
+                       Fachadas Públicas
+                              │
+                              ▼
+                    Camada de Domínio
+                              │
+                              ▼
+                  Infraestrutura / Repositórios
+                              │
+                              ▼
+                      Persistência (JSON)
+                   (Futuro: PostgreSQL)

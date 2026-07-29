@@ -1,0 +1,109 @@
+"""
+Regras puras do domínio de Projetos.
+
+Este módulo não utiliza:
+
+- input();
+- print();
+- arquivos JSON;
+- coleções globais;
+- módulos de interface.
+
+As funções recebem os dados necessários e retornam resultados.
+"""
+
+
+def buscar_projeto_por_codigo(projetos, codigo):
+    """
+    Busca um Projeto pelo código informado.
+
+    Parâmetros:
+        projetos:
+            Coleção de Projetos cadastrados.
+
+        codigo:
+            Código do Projeto procurado.
+
+    Retorno:
+        O Projeto encontrado ou None.
+    """
+
+    for projeto in projetos:
+        if projeto["codigo"] == codigo:
+            return projeto
+
+    return None
+
+
+def codigo_projeto_existe(projetos, codigo):
+    """
+    Verifica se já existe um Projeto com o código informado.
+
+    Retorna:
+        True quando o código existir.
+        False quando o código não existir.
+    """
+
+    return buscar_projeto_por_codigo(
+        projetos,
+        codigo,
+    ) is not None
+
+
+def criar_dados_projeto(
+    codigo,
+    codigo_cliente,
+    distribuidora,
+    potencia,
+    status_inicial,
+):
+    """
+    Cria os dados básicos de um novo Projeto.
+
+    Esta função apenas monta e retorna o dicionário.
+    Ela não adiciona o Projeto a uma lista e não salva arquivos.
+    """
+
+    return {
+        "codigo": codigo,
+        "cliente": codigo_cliente,
+        "distribuidora": distribuidora,
+        "potencia": potencia,
+        "status": status_inicial,
+    }
+
+
+def criar_dados_projeto_a_partir_do_orcamento(
+    codigo,
+    orcamento,
+    status_inicial,
+):
+    """
+    Cria os dados de um Projeto a partir de um Orçamento aprovado.
+
+    Esta função não altera o Orçamento recebido,
+    não adiciona o Projeto a coleções e não salva arquivos.
+    """
+
+    return {
+        "codigo": codigo,
+        "cliente": orcamento["cliente"],
+        "orcamento_origem": orcamento["codigo"],
+        "distribuidora": (
+            orcamento["local_instalacao"]["distribuidora"]
+        ),
+        "potencia": (
+            orcamento["dimensionamento"][
+                "potencia_prevista_kwp"
+            ]
+        ),
+        "codigo_uc": (
+            orcamento["local_instalacao"]["codigo_uc"]
+        ),
+        "tipo_telhado": (
+            orcamento["local_instalacao"]["tipo_telhado"]
+        ),
+        "modulos": orcamento["modulos"].copy(),
+        "inversores": orcamento["inversores"].copy(),
+        "status": status_inicial,
+    }

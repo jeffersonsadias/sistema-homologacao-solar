@@ -2,21 +2,21 @@ import unittest
 from unittest.mock import patch
 
 from app import projetos
-from app import status
+from app.dominio import status
 
 
 class TestConversaoOrcamentoProjeto(unittest.TestCase):
     """
-    Testes da criação de projetos a partir
-    de um orçamento aprovado.
+    Testes da criação de Projetos a partir
+    de um Orçamento aprovado.
     """
 
     def setUp(self):
         """
         Executado antes de cada teste.
 
-        Guardamos a lista original de projetos
-        e criamos uma lista vazia apenas para os testes.
+        Guarda a lista original de Projetos
+        e cria uma lista vazia exclusiva para o teste.
         """
 
         self.projetos_originais = projetos.projetos
@@ -24,79 +24,59 @@ class TestConversaoOrcamentoProjeto(unittest.TestCase):
         projetos.projetos = []
 
         self.orcamento_aprovado = {
-
             "codigo": 10,
 
             "cliente": 3,
 
             "dimensionamento": {
-
                 "consumo_medio_kwh": 650.0,
-
-                "potencia_prevista_kwp": 5.5
-
+                "potencia_prevista_kwp": 5.5,
             },
 
             "modulos": {
-
                 "quantidade": 10,
-
-                "fabricante": "Canadian Solar"
-
+                "fabricante": "Canadian Solar",
             },
 
             "inversores": {
-
                 "quantidade": 1,
-
                 "fabricante": "Growatt",
-
-                "tensao": "220 V"
-
+                "tensao": "220 V",
             },
 
             "local_instalacao": {
-
                 "codigo_uc": "123456789",
-
                 "distribuidora": "Neoenergia Coelba",
-
-                "tipo_telhado": "Cerâmico"
-
+                "tipo_telhado": "Cerâmico",
             },
 
             "comercial": {
-
                 "valor_total": 23000.00,
-
                 "validade_dias": 10,
-
-                "prazo_instalacao_dias": 45
-
+                "prazo_instalacao_dias": 45,
             },
 
-            "status": "Aprovado"
-
+            "status": "Aprovado",
         }
 
     def tearDown(self):
         """
         Executado após cada teste.
 
-        Restauramos a lista original para que
-        nenhum teste interfira nos demais.
+        Restaura a lista original para impedir
+        interferência entre os testes.
         """
 
         projetos.projetos = self.projetos_originais
 
-    @patch("app.projetos.dados.salvar_dados")
+    @patch("app.projetos.salvar_projetos")
     def test_deve_criar_projeto_a_partir_do_orcamento(
         self,
-        salvar_dados_simulado
+        mock_salvar_projetos,
     ):
         """
-        Deve criar um novo projeto utilizando
-        as informações do orçamento aprovado.
+        Deve criar um novo Projeto utilizando
+        as informações do Orçamento aprovado.
         """
 
         projeto_criado = (
@@ -109,60 +89,61 @@ class TestConversaoOrcamentoProjeto(unittest.TestCase):
 
         self.assertEqual(
             projeto_criado["codigo"],
-            1
+            1,
         )
 
         self.assertEqual(
             projeto_criado["cliente"],
-            3
+            3,
         )
 
         self.assertEqual(
             projeto_criado["orcamento_origem"],
-            10
+            10,
         )
 
         self.assertEqual(
             projeto_criado["potencia"],
-            5.5
+            5.5,
         )
 
         self.assertEqual(
             projeto_criado["distribuidora"],
-            "Neoenergia Coelba"
+            "Neoenergia Coelba",
         )
 
         self.assertEqual(
             projeto_criado["codigo_uc"],
-            "123456789"
+            "123456789",
         )
 
         self.assertEqual(
             projeto_criado["tipo_telhado"],
-            "Cerâmico"
+            "Cerâmico",
         )
 
         self.assertEqual(
             projeto_criado["status"],
-            status.STATUS_INICIAL
+            status.STATUS_INICIAL,
         )
 
         self.assertEqual(
             len(projetos.projetos),
-            1
+            1,
         )
 
-        salvar_dados_simulado.assert_called_once()
+        mock_salvar_projetos.assert_called_once_with(
+            projetos.projetos
+        )
 
-    @patch("app.projetos.dados.salvar_dados")
+    @patch("app.projetos.salvar_projetos")
     def test_projeto_deve_receber_copia_dos_equipamentos(
         self,
-        salvar_dados_simulado
+        mock_salvar_projetos,
     ):
         """
-        Verifica se módulos e inversores
-        são copiados e não compartilham
-        a mesma referência do orçamento.
+        Verifica se módulos e inversores são copiados
+        e não compartilham a mesma referência do Orçamento.
         """
 
         projeto_criado = (
@@ -181,22 +162,26 @@ class TestConversaoOrcamentoProjeto(unittest.TestCase):
 
         self.assertEqual(
             self.orcamento_aprovado["modulos"]["fabricante"],
-            "Canadian Solar"
+            "Canadian Solar",
         )
 
         self.assertEqual(
             self.orcamento_aprovado["inversores"]["tensao"],
-            "220 V"
+            "220 V",
         )
 
-        self.assertNotEqual(
-            id(projeto_criado["modulos"]),
-            id(self.orcamento_aprovado["modulos"])
+        self.assertIsNot(
+            projeto_criado["modulos"],
+            self.orcamento_aprovado["modulos"],
         )
 
-        self.assertNotEqual(
-            id(projeto_criado["inversores"]),
-            id(self.orcamento_aprovado["inversores"])
+        self.assertIsNot(
+            projeto_criado["inversores"],
+            self.orcamento_aprovado["inversores"],
+        )
+
+        mock_salvar_projetos.assert_called_once_with(
+            projetos.projetos
         )
 
 

@@ -1,160 +1,94 @@
-from . import dados
-from . import utils
+"""
+Fachada de compatibilidade do módulo de Clientes.
 
-# Lista que armazenará todos os clientes cadastrados
-#clientes = [] - foi substituido por função que chama os "clientes" salvos.
-clientes = dados.carregar_dados("clientes.json")
+Este módulo preserva os imports e comportamentos utilizados
+pelos módulos e testes criados durante a Sprint 1.
+
+A interface real está localizada em:
+
+    app.interface.clientes_interface
+
+As regras puras estão localizadas em:
+
+    app.dominio.clientes
+"""
+
+from app.dominio.clientes import (
+    buscar_cliente_por_codigo,
+    buscar_clientes_por_nome as buscar_clientes_no_dominio,
+)
+
+from app.interface import clientes_interface
+
+
+# Mantém disponível a coleção pública usada pelo código legado
+# e pelos testes da Sprint 1.
+clientes = clientes_interface.clientes
+
 
 def cadastrar_cliente():
     """
-    Cadastra um novo cliente na lista.
+    Encaminha o cadastro para a interface de terminal.
     """
 
-    print("\n=== Cadastro de Cliente ===")
-
-    # Código automático
-    codigo = utils.gerar_proximo_codigo(clientes)
-
-    nome = input("Nome do cliente: ")
-    cidade = input("Cidade: ")
-    telefone = input("Telefone: ")
-
-    # Cria um dicionário contendo todas as informações
-    cliente = {
-
-        "codigo": codigo,
-        "nome": nome,
-        "cidade": cidade,
-        "telefone": telefone
-
-    }
-
-    # Adiciona o dicionário dentro da lista e salva versão atual
-    clientes.append(cliente)
-
-    dados.salvar_dados("clientes.json", clientes)
-
-    print("\nCliente cadastrado com sucesso!")
+    return clientes_interface.cadastrar_cliente()
 
 
 def listar_clientes():
     """
-    Lista todos os clientes cadastrados em ordem alfabética.
+    Encaminha a listagem completa para a interface de terminal.
     """
 
-    print("\n=== Clientes Cadastrados ===")
+    return clientes_interface.listar_clientes()
 
-    if not clientes:
-        print("Nenhum cliente cadastrado.")
-        return
-
-    clientes_ordenados = sorted(
-        clientes,
-        key=lambda cliente: cliente["nome"].lower()
-    )
-
-    for cliente in clientes_ordenados:
-        print("----------------------------")
-        print(f"Código: {cliente['codigo']}")
-        print(f"Nome: {cliente['nome']}")
-        print(f"Cidade: {cliente['cidade']}")
-        print(f"Telefone: {cliente['telefone']}")
 
 def listar_clientes_resumido():
     """
-    Lista os clientes de forma resumida e em ordem alfabética.
+    Encaminha a listagem resumida para a interface de terminal.
     """
 
-    print("\n=== Clientes Cadastrados ===")
+    return clientes_interface.listar_clientes_resumido()
 
-    if not clientes:
-        print("Nenhum cliente cadastrado.")
-        return
-
-    clientes_ordenados = sorted(
-        clientes,
-        key=lambda cliente: cliente["nome"].lower()
-    )
-
-    for cliente in clientes_ordenados:
-        print(f"{cliente['codigo']} - {cliente['nome']}")
 
 def selecionar_cliente():
     """
-    Exibe os clientes cadastrados, solicita um código
-    e retorna o cliente encontrado.
+    Encaminha a seleção para a interface de terminal.
     """
 
-    listar_clientes_resumido()
+    return clientes_interface.selecionar_cliente()
 
-    codigo_cliente = int(input("\nCódigo do cliente: "))
-
-    cliente = buscar_cliente(codigo_cliente)
-
-    if cliente is None:
-        print("\nCliente não encontrado.")
-        return None
-
-    return cliente
-
-def buscar_cliente(codigo):
-    """
-    Busca um cliente pelo código.
-    Retorna o cliente encontrado ou None.
-    """
-
-    for cliente in clientes:
-
-        if cliente["codigo"] == codigo:
-            return cliente
-
-    return None
-
-def buscar_clientes_por_nome(nome_busca):
-    """
-    Busca clientes pelo nome ou por parte do nome.
-    Retorna uma lista com todos os clientes encontrados.
-    """
-
-    nome_busca = nome_busca.strip().lower()
-
-    clientes_encontrados = []
-
-    for cliente in clientes:
-
-        nome_cliente = cliente["nome"].lower()
-
-        if nome_busca in nome_cliente:
-            clientes_encontrados.append(cliente)
-
-    clientes_encontrados = sorted(
-        clientes_encontrados,
-        key=lambda cliente: cliente["nome"].lower()
-    )
-
-    return clientes_encontrados
 
 def consultar_clientes_por_nome():
     """
-    Solicita um nome ao usuário e exibe os clientes encontrados.
+    Encaminha a consulta interativa para a interface de terminal.
     """
 
-    print("\n=== Buscar Cliente por Nome ===")
+    return clientes_interface.consultar_clientes_por_nome()
 
-    nome_busca = input("Digite o nome ou parte do nome: ")
 
-    clientes_encontrados = buscar_clientes_por_nome(nome_busca)
+def buscar_cliente(codigo):
+    """
+    Busca um Cliente pelo código.
 
-    if not clientes_encontrados:
-        print("\nNenhum cliente encontrado.")
-        return
+    Esta função utiliza a coleção pública desta fachada para
+    preservar a compatibilidade com os testes e módulos antigos.
+    """
 
-    print(f"\nForam encontrados {len(clientes_encontrados)} cliente(s):")
+    return buscar_cliente_por_codigo(
+        clientes,
+        codigo,
+    )
 
-    for cliente in clientes_encontrados:
-        print("----------------------------")
-        print(f"Código: {cliente['codigo']}")
-        print(f"Nome: {cliente['nome']}")
-        print(f"Cidade: {cliente['cidade']}")
-        print(f"Telefone: {cliente['telefone']}")
 
+def buscar_clientes_por_nome(nome_busca):
+    """
+    Busca Clientes por nome completo ou parcial.
+
+    Esta função utiliza a coleção pública desta fachada para
+    preservar a compatibilidade com os testes e módulos antigos.
+    """
+
+    return buscar_clientes_no_dominio(
+        clientes,
+        nome_busca,
+    )

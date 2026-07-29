@@ -1,0 +1,21 @@
+Empresa
+│
+├──────────────┐
+│              │
+▼              ▼
+Usuário     Cliente
+                 │
+                 ▼
+             Projeto
+                 │
+      ┌──────────┼───────────┐
+      ▼          ▼           ▼
+Orçamento   Unidade      Homologação
+             Consumidora
+                │
+      ┌─────────┴──────────┐
+      ▼                    ▼
+Geradora             Beneficiária
+                │
+                ▼
+             Titular

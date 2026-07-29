@@ -1,6 +1,6 @@
 import unittest
 
-from app import status
+from app.dominio import status
 
 
 class TestTransicaoStatus(unittest.TestCase):

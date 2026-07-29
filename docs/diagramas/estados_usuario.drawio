@@ -1,0 +1,9 @@
+         Ativo
+        ▲   │
+        │   ▼
+   Inativo  Bloqueado
+        ▲       │
+        └───────┘
+             │
+             ▼
+        Cancelado

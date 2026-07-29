@@ -1,0 +1,28 @@
+[
+    {
+        "codigo": 1,
+        "numero_uc": "123456789",
+        "codigo_cliente": "123456789",
+        "codigo_concessionaria": 1,
+        "titular": {
+            "nome": "JEFF DIAS",
+            "documento": "14725836914",
+            "tipo": "PESSOA_FISICA"
+        },
+        "endereco": {
+            "logradouro": "SANTA ISABEL 200, SANTA RIA",
+            "numero": "200",
+            "bairro": "SANTA RITA",
+            "cidade": "CAETITE",
+            "estado": "BA",
+            "cep": "46400000",
+            "complemento": ""
+        },
+        "tipo_ligacao": "TRIFASICA",
+        "carga_instalada_kw": 25.0,
+        "situacao": "ATIVA",
+        "data_cadastro": "2026-07-27T21:05:52.486472",
+        "data_atualizacao": "2026-07-27T21:05:52.486479",
+        "historico_alteracoes": []
+    }
+]
