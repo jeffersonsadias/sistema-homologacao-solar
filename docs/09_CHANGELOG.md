@@ -42,3 +42,15 @@ As futuras Sprints deverão registrar:
 * alterações arquitetônicas;
 * remoções;
 * depreciações.
+
+## v1.0.0-foundation
+
+### Marco arquitetural
+
+- Consolidação da arquitetura multicamadas
+- Definição do modelo de domínio
+- Criação da documentação oficial
+- Padronização das regras de desenvolvimento
+- Introdução dos Architecture Decision Records (ADR)
+- Estruturação da plataforma como SolarCore Platform
+- Validação completa da suíte de testes
