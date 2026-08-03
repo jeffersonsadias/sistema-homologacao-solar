@@ -258,6 +258,32 @@ Toda alteração nesses elementos deve ocorrer através do Projeto.
 
 ---
 
+## Agregado Homologação
+
+Raiz:
+
+Homologação
+
+Contém:
+
+- Documentos;
+- Histórico documental;
+- Submissões;
+- Respostas da concessionária;
+- Exigências;
+- Movimentações;
+- Eventos de negócio.
+
+A Homologação é responsável por garantir a consistência
+transacional de todo o processo de aprovação do Projeto
+junto à concessionária.
+
+Todas as alterações em seus elementos internos devem ser
+realizadas exclusivamente através das operações públicas
+do Aggregate Root.
+
+---
+
 # Objetos de Valor (Value Objects)
 
 Embora inicialmente sejam armazenados como estruturas simples, estes conceitos representam Objetos de Valor e poderão evoluir para classes próprias.

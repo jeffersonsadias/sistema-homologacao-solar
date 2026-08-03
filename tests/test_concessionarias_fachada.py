@@ -39,6 +39,62 @@ class TestConcessionariasFachada(
         )
 
     @patch(
+    "app.concessionarias."
+    "buscar_concessionaria_por_codigo"
+    )
+    def test_obter_concessionaria(
+        self,
+        mock_buscar,
+    ):
+        """
+        Deve retornar obrigatoriamente a Concessionária
+        encontrada pelo domínio.
+        """
+
+        concessionaria_esperada = object()
+
+        mock_buscar.return_value = (
+            concessionaria_esperada
+        )
+
+        resultado = concessionarias.obter_concessionaria(
+            10
+        )
+
+        mock_buscar.assert_called_once_with(
+            concessionarias.concessionarias,
+            10,
+        )
+
+        self.assertIs(
+            resultado,
+            concessionaria_esperada,
+        )
+
+    @patch(
+        "app.concessionarias."
+        "buscar_concessionaria_por_codigo"
+    )
+    def test_obter_concessionaria_inexistente(
+        self,
+        mock_buscar,
+    ):
+        """
+        Deve gerar ValueError quando a Concessionária
+        não for encontrada.
+        """
+
+        mock_buscar.return_value = None
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não encontrada",
+        ):
+            concessionarias.obter_concessionaria(
+                999
+            )
+
+    @patch(
         "app.concessionarias."
         "concessionarias_interface."
         "cadastrar_concessionaria"

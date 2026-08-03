@@ -17,6 +17,7 @@ from app import utils
 
 from app.interface import (
     empresas_interface,
+    homologacoes_interface,
     usuarios_interface,
     vinculos_unidade_projeto_interface,
 )
@@ -97,6 +98,10 @@ def exibir_menu():
 
     print(
         "17 - Gerenciar usuários"
+    )
+
+    print(
+        "18 - Gerenciar homologações"
     )
 
     print(
@@ -224,6 +229,9 @@ def executar_menu():
 
         elif opcao == "17":
             usuarios_interface.menu_usuarios()
+
+        elif opcao == "18":
+            homologacoes_interface.menu_homologacoes()
 
         elif opcao == "0":
             print(

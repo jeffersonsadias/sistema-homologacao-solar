@@ -2,49 +2,77 @@
 
 ## Objetivo
 
-Transformar o Sistema de Homologação Solar em uma plataforma preparada para operação multiempresa.
+Consolidar o domínio do Sistema de Homologação Solar,
+estabelecendo a arquitetura definitiva da plataforma,
+a modelagem do processo de homologação e a base para a
+evolução do sistema até um ambiente SaaS.
 
 ---
 
-## Principais Evoluções
+## Principais Entregas
 
 ### Arquitetura
 
-* consolidação da arquitetura em camadas;
-* criação da camada de domínio;
-* criação da camada de infraestrutura.
+- consolidação da arquitetura em camadas;
+- separação entre Interface, Fachada, Domínio,
+  Infraestrutura e Persistência;
+- padronização dos módulos da aplicação.
 
-### Empresas
+### Modelagem do Domínio
 
-* cadastro;
-* repositório;
-* fachada;
-* testes.
+Implementação e refinamento das entidades:
 
-### Usuários
+- Empresa;
+- Usuário;
+- Cliente;
+- Projeto;
+- Orçamento;
+- Unidade Consumidora;
+- Titular;
+- Concessionária;
+- Homologação.
 
-* gerenciamento completo;
-* máquina de estados;
-* interface;
-* integração ao menu;
-* testes automatizados.
+### Processo de Homologação
 
-### Domínio
+Implementação completa do Aggregate Root Homologação,
+incluindo:
 
-Modelagem das entidades principais:
+- documentos;
+- versionamento documental;
+- submissões;
+- respostas da concessionária;
+- exigências;
+- histórico;
+- movimentações;
+- eventos de negócio;
+- máquina de estados.
 
-* Empresa;
-* Usuário;
-* Cliente;
-* Projeto;
-* Orçamento;
-* Unidade Consumidora;
-* Titular.
+### Qualidade
+
+- ampliação significativa da suíte de testes;
+- consolidação das validações do domínio;
+- garantia de atomicidade das operações críticas;
+- padronização dos helpers internos.
 
 ### Documentação
 
-Criação da documentação oficial da plataforma.
+- criação da documentação oficial;
+- definição dos ADRs;
+- atualização do modelo de domínio;
+- registro das decisões arquitetônicas.
 
-### Resultado
+---
 
-Ao término da Sprint 2, a SolarCore Platform passou a possuir uma arquitetura preparada para crescimento modular e evolução para um ambiente SaaS.
+## Resultado
+
+Ao término da Sprint 2 o sistema passou a possuir:
+
+- domínio consolidado;
+- arquitetura multicamadas estável;
+- processo completo de homologação modelado;
+- documentação sincronizada;
+- base preparada para integração entre módulos.
+
+A partir desse ponto o foco do projeto passa a ser a
+integração do domínio ao fluxo operacional da aplicação,
+marcando o início da Sprint 3.

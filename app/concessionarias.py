@@ -22,11 +22,38 @@ from app.infraestrutura.repositorio_concessionarias_json import (
 )
 from app.interface import concessionarias_interface
 
+from app.dominio.concessionarias import (
+    buscar_concessionaria_por_codigo,
+)
 
 # A lista é carregada uma única vez quando o módulo
 # app.concessionarias é importado.
 concessionarias = carregar_concessionarias()
 
+def obter_concessionaria(
+    codigo_concessionaria: int,
+):
+    """
+    Retorna obrigatoriamente uma Concessionária existente.
+
+    Esta consulta não utiliza input() e pode ser chamada
+    pelas fachadas de outros módulos.
+
+    Gera ValueError quando o código não for encontrado.
+    """
+
+    concessionaria = buscar_concessionaria_por_codigo(
+        concessionarias,
+        codigo_concessionaria,
+    )
+
+    if concessionaria is None:
+        raise ValueError(
+            "Concessionária com código "
+            f"{codigo_concessionaria} não encontrada."
+        )
+
+    return concessionaria
 
 def cadastrar_concessionaria():
     """

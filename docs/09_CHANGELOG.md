@@ -21,14 +21,24 @@ Todas as alterações relevantes da SolarCore Platform deverão ser registradas 
 
 ### Adicionado
 
-* Gestão de Empresas
-* Gestão de Usuários
-* Arquitetura multicamadas
-* Camada de Domínio
-* Camada de Infraestrutura
-* Documentação oficial
-* ADRs
-* Modelo de Domínio
+- Gestão de Empresas
+- Gestão de Usuários
+- Consolidação da arquitetura multicamadas
+- Camada de Domínio
+- Camada de Infraestrutura
+- Documentação oficial
+- Architecture Decision Records (ADR)
+- Modelo de Domínio
+- Aggregate Root de Homologação
+- Gestão de Documentos
+- Versionamento documental
+- Gestão de Submissões
+- Gestão de Respostas da concessionária
+- Gestão de Exigências
+- Máquina de estados da Homologação
+- Eventos de negócio
+- Histórico operacional
+- Consolidação da suíte de testes
 
 ---
 

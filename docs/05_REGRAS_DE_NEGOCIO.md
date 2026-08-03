@@ -139,7 +139,31 @@ Representa o responsável legal pela Unidade Consumidora.
 
 # Homologação
 
-O processo de homologação é composto por diversas etapas controladas pelo sistema.
+A Homologação representa todo o processo de aprovação do
+Projeto perante a concessionária.
+
+Ela coordena:
+
+- documentos técnicos;
+- submissões;
+- respostas da concessionária;
+- exigências;
+- histórico de movimentações.
+
+## Regras
+
+- toda Homologação pertence a um único Projeto;
+- documentos podem possuir múltiplas versões;
+- toda Submissão deve respeitar sua sequência cronológica;
+- respostas são vinculadas à Submissão correspondente;
+- exigências pertencem a uma única Resposta;
+- exigências somente podem ser atendidas por Submissões
+  compatíveis;
+- toda alteração relevante gera uma Movimentação;
+- mudanças de estado devem respeitar a máquina de estados
+  oficial da Homologação;
+- o sistema deve preservar a consistência de todo o
+  agregado antes da persistência.
 
 ## Estados
 

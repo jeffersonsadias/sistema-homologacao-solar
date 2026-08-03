@@ -154,6 +154,35 @@ class TestMenuPrincipal(
 
     @patch(
         "app.menu."
+        "homologacoes_interface."
+        "menu_homologacoes"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "18",
+            "0",
+        ],
+    )
+    def test_abrir_menu_homologacoes(
+        self,
+        mock_input,
+        mock_menu_homologacoes,
+    ):
+        """
+        A opção 18 deve abrir
+        o menu de Homologações.
+        """
+
+        menu.executar_menu()
+
+        (
+            mock_menu_homologacoes
+            .assert_called_once_with()
+        )
+
+    @patch(
+        "app.menu."
         "clientes."
         "cadastrar_cliente"
     )
