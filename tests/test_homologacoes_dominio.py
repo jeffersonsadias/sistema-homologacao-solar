@@ -8,6 +8,7 @@ from app.dominio.homologacoes import (
     alterar_status_documento_homologacao,
     alterar_status_homologacao,
     alterar_status_operacional_submissao,
+    aplicar_evento_homologacao,
     buscar_homologacao_ativa_por_projeto,
     buscar_homologacao_por_codigo,
     buscar_submissao_por_codigo,
@@ -15,9 +16,18 @@ from app.dominio.homologacoes import (
     codigo_homologacao_existe,
     criar_dados_homologacao,
     enviar_submissao_homologacao,
+    homologacao_esta_sem_responsavel,
+    homologacao_possui_exigencia_aberta,
+    homologacao_possui_submissao_aguardando_envio,
+    homologacao_possui_submissao_aguardando_resposta,
     projeto_possui_homologacao_ativa,
     protocolar_submissao_homologacao,
-    aplicar_evento_homologacao,
+    quantidade_homologacoes_aguardando_envio,
+    quantidade_homologacoes_aguardando_resposta,
+    quantidade_homologacoes_com_exigencia_aberta,
+    quantidade_homologacoes_por_status,
+    quantidade_homologacoes_sem_responsavel,
+    quantidade_total_pendencias_homologacao,
 )
 
 from app.dominio.documentos_homologacao import (
@@ -536,6 +546,492 @@ class TestHomologacoesDominio(unittest.TestCase):
         )
 
         self.assertFalse(resultado)
+
+    # ========================================================
+    # CONSULTAS DE PENDÊNCIAS
+    # ========================================================
+
+    def test_quantidade_homologacoes_por_status(self):
+        """
+        Deve contar somente as Homologações
+        que possuem o status informado.
+        """
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .AGUARDANDO_DOCUMENTACAO
+            .value
+        )
+
+        resultado = quantidade_homologacoes_por_status(
+            homologacoes=self.homologacoes,
+            status=(
+                StatusHomologacao
+                .AGUARDANDO_DOCUMENTACAO
+            ),
+        )
+
+        self.assertEqual(
+            resultado,
+            1,
+        )
+
+    def test_quantidade_por_status_deve_aceitar_texto(self):
+        """
+        A consulta também deve aceitar o valor textual
+        persistido no JSON.
+        """
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .AGUARDANDO_DOCUMENTACAO
+            .value
+        )
+
+        resultado = quantidade_homologacoes_por_status(
+            homologacoes=self.homologacoes,
+            status="AGUARDANDO_DOCUMENTACAO",
+        )
+
+        self.assertEqual(
+            resultado,
+            1,
+        )
+
+    def test_homologacao_deve_identificar_exigencia_aberta(
+        self,
+    ):
+        """
+        Deve localizar uma Exigência pendente dentro
+        das Respostas das Submissões.
+        """
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "respostas": [
+                    {
+                        "codigo": 1,
+                        "exigencias": [
+                            {
+                                "codigo": 1,
+                                "status_atendimento": "PENDENTE",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+
+        resultado = homologacao_possui_exigencia_aberta(
+            self.homologacao_ativa
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_exigencia_atendida_nao_deve_ser_considerada_aberta(
+        self,
+    ):
+        """
+        Uma Exigência atendida não representa
+        pendência operacional.
+        """
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "respostas": [
+                    {
+                        "codigo": 1,
+                        "exigencias": [
+                            {
+                                "codigo": 1,
+                                "status_atendimento": "ATENDIDA",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+
+        resultado = homologacao_possui_exigencia_aberta(
+            self.homologacao_ativa
+        )
+
+        self.assertFalse(
+            resultado
+        )
+
+    def test_homologacao_com_varias_exigencias_deve_ser_contada_uma_vez(
+        self,
+    ):
+        """
+        A contagem representa Homologações com pendência,
+        e não o número total de Exigências.
+        """
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "respostas": [
+                    {
+                        "codigo": 1,
+                        "exigencias": [
+                            {
+                                "codigo": 1,
+                                "status_atendimento": "PENDENTE",
+                            },
+                            {
+                                "codigo": 2,
+                                "status_atendimento": "PENDENTE",
+                            },
+                        ],
+                    }
+                ],
+            }
+        ]
+
+        resultado = (
+            quantidade_homologacoes_com_exigencia_aberta(
+                self.homologacoes
+            )
+        )
+
+        self.assertEqual(
+            resultado,
+            1,
+        )
+
+    def test_homologacao_deve_identificar_submissao_aguardando_envio(
+        self,
+    ):
+        """
+        Uma Submissão pronta para envio deve representar
+        uma pendência operacional.
+        """
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "status_operacional": (
+                    StatusOperacionalSubmissao
+                    .PRONTA_PARA_ENVIO
+                    .value
+                ),
+                "status_analise": (
+                    StatusAnaliseSubmissao
+                    .SEM_RESPOSTA
+                    .value
+                ),
+            }
+        ]
+
+        resultado = (
+            homologacao_possui_submissao_aguardando_envio(
+                self.homologacao_ativa
+            )
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_deve_contar_homologacao_aguardando_envio(
+        self,
+    ):
+        """
+        Deve contar uma Homologação ativa com
+        Submissão pronta para envio.
+        """
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "status_operacional": (
+                    StatusOperacionalSubmissao
+                    .PRONTA_PARA_ENVIO
+                    .value
+                ),
+                "status_analise": (
+                    StatusAnaliseSubmissao
+                    .SEM_RESPOSTA
+                    .value
+                ),
+            }
+        ]
+
+        resultado = quantidade_homologacoes_aguardando_envio(
+            self.homologacoes
+        )
+
+        self.assertEqual(
+            resultado,
+            1,
+        )
+
+    def test_homologacao_terminal_nao_deve_aguardar_envio(
+        self,
+    ):
+        """
+        Uma Homologação concluída não deve aparecer
+        nas pendências, mesmo contendo dados inconsistentes.
+        """
+
+        self.homologacao_concluida["submissoes"] = [
+            {
+                "codigo": 1,
+                "status_operacional": (
+                    StatusOperacionalSubmissao
+                    .PRONTA_PARA_ENVIO
+                    .value
+                ),
+                "status_analise": (
+                    StatusAnaliseSubmissao
+                    .SEM_RESPOSTA
+                    .value
+                ),
+            }
+        ]
+
+        resultado = quantidade_homologacoes_aguardando_envio(
+            [
+                self.homologacao_concluida
+            ]
+        )
+
+        self.assertEqual(
+            resultado,
+            0,
+        )
+
+    def test_homologacao_deve_identificar_submissao_aguardando_resposta(
+        self,
+    ):
+        """
+        Uma Submissão enviada e ainda sem resposta
+        deve representar uma pendência.
+        """
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "status_operacional": (
+                    StatusOperacionalSubmissao
+                    .ENVIADA
+                    .value
+                ),
+                "status_analise": (
+                    StatusAnaliseSubmissao
+                    .SEM_RESPOSTA
+                    .value
+                ),
+            }
+        ]
+
+        resultado = (
+            homologacao_possui_submissao_aguardando_resposta(
+                self.homologacao_ativa
+            )
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_submissao_em_preparacao_nao_deve_aguardar_resposta(
+        self,
+    ):
+        """
+        Uma Submissão ainda não enviada não pode estar
+        aguardando retorno da concessionária.
+        """
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "status_operacional": (
+                    StatusOperacionalSubmissao
+                    .EM_PREPARACAO
+                    .value
+                ),
+                "status_analise": (
+                    StatusAnaliseSubmissao
+                    .SEM_RESPOSTA
+                    .value
+                ),
+            }
+        ]
+
+        resultado = (
+            homologacao_possui_submissao_aguardando_resposta(
+                self.homologacao_ativa
+            )
+        )
+
+        self.assertFalse(
+            resultado
+        )
+
+    def test_deve_contar_homologacao_aguardando_resposta(
+        self,
+    ):
+        """
+        Deve contar uma Homologação ativa com
+        Submissão protocolada e sem resposta.
+        """
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "status_operacional": (
+                    StatusOperacionalSubmissao
+                    .PROTOCOLADA
+                    .value
+                ),
+                "status_analise": (
+                    StatusAnaliseSubmissao
+                    .SEM_RESPOSTA
+                    .value
+                ),
+            }
+        ]
+
+        resultado = (
+            quantidade_homologacoes_aguardando_resposta(
+                self.homologacoes
+            )
+        )
+
+        self.assertEqual(
+            resultado,
+            1,
+        )
+
+    def test_homologacao_com_responsavel_vazio_deve_ser_identificada(
+        self,
+    ):
+        """
+        Um texto vazio não representa
+        um responsável operacional válido.
+        """
+
+        self.homologacao_ativa["responsavel_atual"] = "   "
+
+        resultado = homologacao_esta_sem_responsavel(
+            self.homologacao_ativa
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_homologacao_com_responsavel_nao_deve_ser_pendente(
+        self,
+    ):
+        """
+        Uma Homologação com responsável atual definido
+        não deve ser classificada como sem responsável.
+        """
+
+        resultado = homologacao_esta_sem_responsavel(
+            self.homologacao_ativa
+        )
+
+        self.assertFalse(
+            resultado
+        )
+
+    def test_deve_contar_homologacao_sem_responsavel(
+        self,
+    ):
+        """
+        Deve contar somente Homologações ativas
+        sem responsável atual.
+        """
+
+        self.homologacao_ativa["responsavel_atual"] = None
+        self.homologacao_concluida["responsavel_atual"] = None
+
+        resultado = quantidade_homologacoes_sem_responsavel(
+            self.homologacoes
+        )
+
+        self.assertEqual(
+            resultado,
+            1,
+        )
+
+    def test_total_de_pendencias_deve_somar_as_categorias(
+        self,
+    ):
+        """
+        Uma mesma Homologação pode contribuir
+        para categorias de pendência diferentes.
+        """
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .AGUARDANDO_DOCUMENTACAO
+            .value
+        )
+
+        self.homologacao_ativa["responsavel_atual"] = None
+
+        self.homologacao_ativa["submissoes"] = [
+            {
+                "codigo": 1,
+                "status_operacional": (
+                    StatusOperacionalSubmissao
+                    .PRONTA_PARA_ENVIO
+                    .value
+                ),
+                "status_analise": (
+                    StatusAnaliseSubmissao
+                    .SEM_RESPOSTA
+                    .value
+                ),
+                "respostas": [
+                    {
+                        "codigo": 1,
+                        "exigencias": [
+                            {
+                                "codigo": 1,
+                                "status_atendimento": "PENDENTE",
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "codigo": 2,
+                "status_operacional": (
+                    StatusOperacionalSubmissao
+                    .ENVIADA
+                    .value
+                ),
+                "status_analise": (
+                    StatusAnaliseSubmissao
+                    .SEM_RESPOSTA
+                    .value
+                ),
+                "respostas": [],
+            },
+        ]
+
+        resultado = (
+            quantidade_total_pendencias_homologacao(
+                [
+                    self.homologacao_ativa
+                ]
+            )
+        )
+
+        self.assertEqual(
+            resultado,
+            5,
+        )
 
     def test_deve_buscar_homologacao_ativa_do_projeto(self):
         resultado = buscar_homologacao_ativa_por_projeto(

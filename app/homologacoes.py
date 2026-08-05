@@ -31,6 +31,16 @@ from app.dominio.homologacoes import (
     buscar_homologacao_por_codigo,
     criar_dados_homologacao,
     projeto_possui_homologacao_ativa,
+    quantidade_homologacoes_aguardando_envio,
+    quantidade_homologacoes_aguardando_resposta,
+    quantidade_homologacoes_com_exigencia_aberta,
+    quantidade_homologacoes_por_status,
+    quantidade_homologacoes_sem_responsavel,
+    quantidade_total_pendencias_homologacao,
+)
+
+from app.dominio.status_homologacao import (
+    StatusHomologacao,
 )
 
 from app.infraestrutura.repositorio_homologacoes_json import (
@@ -211,6 +221,73 @@ def quantidade_homologacoes(
         listar_homologacoes(
             codigo_empresa=codigo_empresa,
         )
+    )
+
+def quantidade_homologacoes_aguardando_documentacao() -> int:
+    """
+    Retorna a quantidade de Homologações
+    aguardando documentação.
+    """
+
+    return quantidade_homologacoes_por_status(
+        homologacoes=homologacoes,
+        status=(
+            StatusHomologacao
+            .AGUARDANDO_DOCUMENTACAO
+        ),
+    )
+
+def quantidade_homologacoes_com_exigencias_abertas() -> int:
+    """
+    Retorna a quantidade de Homologações
+    que possuem ao menos uma Exigência aberta.
+    """
+
+    return quantidade_homologacoes_com_exigencia_aberta(
+        homologacoes
+    )
+
+def quantidade_homologacoes_pendentes_de_envio() -> int:
+    """
+    Retorna a quantidade de Homologações
+    com Submissão pronta para envio.
+    """
+
+    return quantidade_homologacoes_aguardando_envio(
+        homologacoes
+    )
+
+def quantidade_homologacoes_pendentes_de_resposta() -> int:
+    """
+    Retorna a quantidade de Homologações
+    com Submissão enviada e ainda sem resposta.
+    """
+
+    return quantidade_homologacoes_aguardando_resposta(
+        homologacoes
+    )
+
+def quantidade_homologacoes_sem_responsavel_atual() -> int:
+    """
+    Retorna a quantidade de Homologações ativas
+    sem responsável atual definido.
+    """
+
+    return quantidade_homologacoes_sem_responsavel(
+        homologacoes
+    )
+
+def quantidade_total_pendencias() -> int:
+    """
+    Retorna a soma das categorias de pendência
+    das Homologações.
+
+    Uma mesma Homologação pode contribuir para mais
+    de uma categoria.
+    """
+
+    return quantidade_total_pendencias_homologacao(
+        homologacoes
     )
 
 def buscar_homologacao_por_projeto(

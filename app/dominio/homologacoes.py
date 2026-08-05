@@ -1152,6 +1152,270 @@ def codigo_homologacao_existe(
         codigo_empresa=codigo_empresa,
     ) is not None
 
+def quantidade_homologacoes_por_status(
+    homologacoes: list[dict],
+    status: str | StatusHomologacao,
+) -> int:
+    """
+    Conta as Homologações que possuem o status informado.
+
+    Aceita o Enum StatusHomologacao ou seu valor textual.
+    """
+
+    status_convertido = _converter_status_homologacao(
+        status
+    )
+
+    return sum(
+        1
+        for homologacao in homologacoes
+        if homologacao.get("status")
+        == status_convertido.value
+    )
+
+def _iterar_exigencias_homologacao(
+    homologacao: dict,
+):
+    """
+    Percorre as Exigências armazenadas nas Respostas
+    das Submissões da Homologação.
+
+    A função não utiliza homologacao["exigencias"],
+    pois essa lista não é a fonte canônica.
+    """
+
+    for submissao in homologacao.get(
+        "submissoes",
+        [],
+    ):
+        for resposta in submissao.get(
+            "respostas",
+            [],
+        ):
+            for exigencia in resposta.get(
+                "exigencias",
+                [],
+            ):
+                yield exigencia
+
+def homologacao_possui_exigencia_aberta(
+    homologacao: dict,
+) -> bool:
+    """
+    Informa se a Homologação possui ao menos
+    uma Exigência pendente de atendimento.
+    """
+
+    return any(
+        exigencia.get("status_atendimento")
+        == "PENDENTE"
+        for exigencia in (
+            _iterar_exigencias_homologacao(
+                homologacao
+            )
+        )
+    )
+
+def quantidade_homologacoes_com_exigencia_aberta(
+    homologacoes: list[dict],
+) -> int:
+    """
+    Conta quantas Homologações possuem ao menos
+    uma Exigência aberta.
+    """
+
+    return sum(
+        1
+        for homologacao in homologacoes
+        if homologacao_possui_exigencia_aberta(
+            homologacao
+        )
+    )
+
+def homologacao_possui_submissao_aguardando_envio(
+    homologacao: dict,
+) -> bool:
+    """
+    Informa se existe uma Submissão pronta para envio.
+    """
+
+    return any(
+        submissao.get("status_operacional")
+        == StatusOperacionalSubmissao.PRONTA_PARA_ENVIO.value
+        for submissao in homologacao.get(
+            "submissoes",
+            [],
+        )
+    )
+
+def quantidade_homologacoes_aguardando_envio(
+    homologacoes: list[dict],
+) -> int:
+    """
+    Conta Homologações com ao menos uma Submissão
+    pronta para envio.
+    """
+
+    return sum(
+        1
+        for homologacao in homologacoes
+        if (
+            homologacao
+            .get("status")
+            not in {
+                StatusHomologacao.CONCLUIDA.value,
+                StatusHomologacao.REJEITADA.value,
+                StatusHomologacao.CANCELADA.value,
+            }
+            and homologacao_possui_submissao_aguardando_envio(
+                homologacao
+            )
+        )
+    )
+
+def homologacao_possui_submissao_aguardando_resposta(
+    homologacao: dict,
+) -> bool:
+    """
+    Informa se existe uma Submissão já enviada
+    ou protocolada que ainda não recebeu resposta.
+    """
+
+    estados_enviados = {
+        StatusOperacionalSubmissao.ENVIADA.value,
+        StatusOperacionalSubmissao.PROTOCOLADA.value,
+    }
+
+    return any(
+        (
+            submissao.get("status_operacional")
+            in estados_enviados
+            and submissao.get("status_analise")
+            == StatusAnaliseSubmissao.SEM_RESPOSTA.value
+        )
+        for submissao in homologacao.get(
+            "submissoes",
+            [],
+        )
+    )
+
+def quantidade_homologacoes_aguardando_resposta(
+    homologacoes: list[dict],
+) -> int:
+    """
+    Conta Homologações com ao menos uma Submissão
+    enviada que permanece sem resposta.
+    """
+
+    return sum(
+        1
+        for homologacao in homologacoes
+        if (
+            homologacao
+            .get("status")
+            not in {
+                StatusHomologacao.CONCLUIDA.value,
+                StatusHomologacao.REJEITADA.value,
+                StatusHomologacao.CANCELADA.value,
+            }
+            and homologacao_possui_submissao_aguardando_resposta(
+                homologacao
+            )
+        )
+    )
+
+def homologacao_esta_sem_responsavel(
+    homologacao: dict,
+) -> bool:
+    """
+    Informa se a Homologação não possui responsável atual.
+    """
+
+    responsavel = homologacao.get(
+        "responsavel_atual"
+    )
+
+    return (
+        responsavel is None
+        or (
+            isinstance(responsavel, str)
+            and not responsavel.strip()
+        )
+    )
+
+def quantidade_homologacoes_sem_responsavel(
+    homologacoes: list[dict],
+) -> int:
+    """
+    Conta Homologações sem responsável atual definido.
+    """
+
+    return sum(
+        1
+        for homologacao in homologacoes
+        if (
+            homologacao
+            .get("status")
+            not in {
+                StatusHomologacao.CONCLUIDA.value,
+                StatusHomologacao.REJEITADA.value,
+                StatusHomologacao.CANCELADA.value,
+            }
+            and homologacao_esta_sem_responsavel(
+                homologacao
+            )
+        )
+    )
+
+def quantidade_total_pendencias_homologacao(
+    homologacoes: list[dict],
+) -> int:
+    """
+    Retorna a soma dos indicadores de pendência.
+
+    Uma mesma Homologação pode contribuir para mais de uma
+    categoria quando possuir pendências diferentes.
+    """
+
+    aguardando_documentacao = (
+        quantidade_homologacoes_por_status(
+            homologacoes,
+            StatusHomologacao.AGUARDANDO_DOCUMENTACAO,
+        )
+    )
+
+    com_exigencia = (
+        quantidade_homologacoes_com_exigencia_aberta(
+            homologacoes
+        )
+    )
+
+    aguardando_envio = (
+        quantidade_homologacoes_aguardando_envio(
+            homologacoes
+        )
+    )
+
+    aguardando_resposta = (
+        quantidade_homologacoes_aguardando_resposta(
+            homologacoes
+        )
+    )
+
+    sem_responsavel = (
+        quantidade_homologacoes_sem_responsavel(
+            homologacoes
+        )
+    )
+
+    return (
+        aguardando_documentacao
+        + com_exigencia
+        + aguardando_envio
+        + aguardando_resposta
+        + sem_responsavel
+    )
+
 def buscar_homologacao_ativa_por_projeto(
     homologacoes: list[dict],
     codigo_projeto: int,

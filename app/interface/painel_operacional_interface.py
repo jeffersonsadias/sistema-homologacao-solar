@@ -135,6 +135,57 @@ def exibir_painel_operacional() -> None:
     )
 
     print()
+    print("-" * 60)
+    print("PENDÊNCIAS DE HOMOLOGAÇÃO")
+    print("-" * 60)
+    print()
+
+    _exibir_indicador(
+        "Aguardando documentação",
+        (
+            homologacoes
+            .quantidade_homologacoes_aguardando_documentacao()
+        ),
+    )
+
+    _exibir_indicador(
+        "Com exigências abertas",
+        (
+            homologacoes
+            .quantidade_homologacoes_com_exigencias_abertas()
+        ),
+    )
+
+    _exibir_indicador(
+        "Aguardando envio",
+        (
+            homologacoes
+            .quantidade_homologacoes_pendentes_de_envio()
+        ),
+    )
+
+    _exibir_indicador(
+        "Aguardando resposta",
+        (
+            homologacoes
+            .quantidade_homologacoes_pendentes_de_resposta()
+        ),
+    )
+
+    _exibir_indicador(
+        "Sem responsável",
+        (
+            homologacoes
+            .quantidade_homologacoes_sem_responsavel_atual()
+        ),
+    )
+
+    _exibir_indicador(
+        "Total de pendências",
+        homologacoes.quantidade_total_pendencias(),
+    )
+
+    print()
 
     print(
         "Consulta realizada em: "

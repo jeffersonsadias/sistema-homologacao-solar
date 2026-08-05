@@ -31,6 +31,41 @@ class TestPainelOperacionalInterface(
         "_obter_data_hora_consulta"
     )
     @patch(
+    "app.interface.painel_operacional_interface."
+    "homologacoes.quantidade_total_pendencias",
+    return_value=15,
+    )
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "homologacoes."
+        "quantidade_homologacoes_sem_responsavel_atual",
+        return_value=1,
+    )
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "homologacoes."
+        "quantidade_homologacoes_pendentes_de_resposta",
+        return_value=5,
+    )
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "homologacoes."
+        "quantidade_homologacoes_pendentes_de_envio",
+        return_value=3,
+    )
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "homologacoes."
+        "quantidade_homologacoes_com_exigencias_abertas",
+        return_value=2,
+    )
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "homologacoes."
+        "quantidade_homologacoes_aguardando_documentacao",
+        return_value=4,
+    )
+    @patch(
         "app.interface.painel_operacional_interface."
         "projetos.quantidade_projetos_com_status",
         side_effect=[
@@ -74,6 +109,12 @@ class TestPainelOperacionalInterface(
         mock_quantidade_projetos,
         mock_quantidade_homologacoes,
         mock_quantidade_por_status,
+        mock_aguardando_documentacao,
+        mock_exigencias_abertas,
+        mock_pendentes_envio,
+        mock_pendentes_resposta,
+        mock_sem_responsavel,
+        mock_total_pendencias,
         mock_data_hora,
         mock_print,
         mock_input,
@@ -128,6 +169,18 @@ class TestPainelOperacionalInterface(
             ],
         )
 
+        mock_aguardando_documentacao.assert_called_once_with()
+
+        mock_exigencias_abertas.assert_called_once_with()
+
+        mock_pendentes_envio.assert_called_once_with()
+
+        mock_pendentes_resposta.assert_called_once_with()
+
+        mock_sem_responsavel.assert_called_once_with()
+
+        mock_total_pendencias.assert_called_once_with()
+
         mock_print.assert_any_call(
             "Aguardando documentação.........     8"
         )
@@ -159,6 +212,34 @@ class TestPainelOperacionalInterface(
 
         mock_input.assert_called_once_with(
             "\nPressione Enter para voltar..."
+        )
+
+        mock_print.assert_any_call(
+            "PENDÊNCIAS DE HOMOLOGAÇÃO"
+        )
+
+        mock_print.assert_any_call(
+            "Aguardando documentação.........     4"
+        )
+
+        mock_print.assert_any_call(
+            "Com exigências abertas..........     2"
+        )
+
+        mock_print.assert_any_call(
+            "Aguardando envio................     3"
+        )
+
+        mock_print.assert_any_call(
+            "Aguardando resposta.............     5"
+        )
+
+        mock_print.assert_any_call(
+            "Sem responsável.................     1"
+        )
+
+        mock_print.assert_any_call(
+            "Total de pendências.............    15"
         )
 
 

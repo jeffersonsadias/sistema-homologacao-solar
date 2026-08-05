@@ -258,6 +258,160 @@ class TestHomologacoesFachada(unittest.TestCase):
             2,
         )
 
+    @patch(
+        "app.homologacoes."
+        "quantidade_homologacoes_por_status"
+    )
+    def test_quantidade_homologacoes_aguardando_documentacao(
+        self,
+        mock_quantidade,
+    ):
+        """
+        Deve delegar ao domínio a contagem de Homologações
+        aguardando documentação.
+        """
+
+        mock_quantidade.return_value = 3
+
+        resultado = (
+            homologacoes
+            .quantidade_homologacoes_aguardando_documentacao()
+        )
+
+        mock_quantidade.assert_called_once_with(
+            homologacoes=homologacoes.homologacoes,
+            status=(
+                homologacoes
+                .StatusHomologacao
+                .AGUARDANDO_DOCUMENTACAO
+            ),
+        )
+
+        self.assertEqual(
+            resultado,
+            3,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "quantidade_homologacoes_com_exigencia_aberta"
+    )
+    def test_quantidade_homologacoes_com_exigencias_abertas(
+        self,
+        mock_quantidade,
+    ):
+        mock_quantidade.return_value = 2
+
+        resultado = (
+            homologacoes
+            .quantidade_homologacoes_com_exigencias_abertas()
+        )
+
+        mock_quantidade.assert_called_once_with(
+            homologacoes.homologacoes
+        )
+
+        self.assertEqual(
+            resultado,
+            2,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "quantidade_homologacoes_aguardando_envio"
+    )
+    def test_quantidade_homologacoes_pendentes_de_envio(
+        self,
+        mock_quantidade,
+    ):
+        mock_quantidade.return_value = 4
+
+        resultado = (
+            homologacoes
+            .quantidade_homologacoes_pendentes_de_envio()
+        )
+
+        mock_quantidade.assert_called_once_with(
+            homologacoes.homologacoes
+        )
+
+        self.assertEqual(
+            resultado,
+            4,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "quantidade_homologacoes_aguardando_resposta"
+    )
+    def test_quantidade_homologacoes_pendentes_de_resposta(
+        self,
+        mock_quantidade,
+    ):
+        mock_quantidade.return_value = 5
+
+        resultado = (
+            homologacoes
+            .quantidade_homologacoes_pendentes_de_resposta()
+        )
+
+        mock_quantidade.assert_called_once_with(
+            homologacoes.homologacoes
+        )
+
+        self.assertEqual(
+            resultado,
+            5,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "quantidade_homologacoes_sem_responsavel"
+    )
+    def test_quantidade_homologacoes_sem_responsavel_atual(
+        self,
+        mock_quantidade,
+    ):
+        mock_quantidade.return_value = 1
+
+        resultado = (
+            homologacoes
+            .quantidade_homologacoes_sem_responsavel_atual()
+        )
+
+        mock_quantidade.assert_called_once_with(
+            homologacoes.homologacoes
+        )
+
+        self.assertEqual(
+            resultado,
+            1,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "quantidade_total_pendencias_homologacao"
+    )
+    def test_quantidade_total_pendencias(
+        self,
+        mock_quantidade,
+    ):
+        mock_quantidade.return_value = 15
+
+        resultado = (
+            homologacoes
+            .quantidade_total_pendencias()
+        )
+
+        mock_quantidade.assert_called_once_with(
+            homologacoes.homologacoes
+        )
+
+        self.assertEqual(
+            resultado,
+            15,
+        )
+
     # ========================================================
     # CADASTRO
     # ========================================================
