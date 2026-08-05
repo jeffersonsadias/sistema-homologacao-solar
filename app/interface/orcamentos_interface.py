@@ -11,6 +11,7 @@ A coleção é sempre recebida por parâmetro.
 """
 
 from app import clientes
+from app import homologacoes
 from app import projetos
 from app import status_orcamento
 from app import utils
@@ -25,6 +26,156 @@ from app.infraestrutura.repositorio_orcamentos_json import (
     salvar_orcamentos,
 )
 
+# ============================================================
+# INTEGRAÇÃO PROJETO → HOMOLOGAÇÃO
+# ============================================================
+
+def _confirmar_inicio_homologacao():
+    """
+    Pergunta se o operador deseja iniciar a Homologação.
+
+    Retorna:
+        True:
+            Quando a opção escolhida for 1.
+
+        False:
+            Quando a opção escolhida for 2.
+
+    A função permanece solicitando uma opção enquanto
+    o valor informado não for reconhecido.
+    """
+
+    while True:
+        print(
+            "\nDeseja iniciar agora o processo "
+            "de Homologação?"
+        )
+
+        print(
+            "1 - Sim"
+        )
+
+        print(
+            "2 - Não"
+        )
+
+        opcao = input(
+            "Escolha uma opção: "
+        ).strip()
+
+        if opcao == "1":
+            return True
+
+        if opcao == "2":
+            return False
+
+        print(
+            "\nOpção inválida. Informe 1 ou 2."
+        )
+
+def _iniciar_homologacao_do_projeto(
+    projeto_criado,
+):
+    """
+    Oferece a abertura de uma Homologação para o Projeto criado.
+
+    Quando o operador não desejar iniciar o processo, nenhuma
+    Homologação será criada e o Projeto será preservado.
+
+    Quando houver falha durante a abertura da Homologação,
+    o Projeto e o Orçamento já convertidos também serão
+    preservados.
+
+    Retorna:
+        A Homologação criada ou None.
+    """
+
+    iniciar_agora = _confirmar_inicio_homologacao()
+
+    if not iniciar_agora:
+        print(
+            "\nO Projeto foi criado normalmente."
+        )
+
+        print(
+            "A Homologação poderá ser iniciada "
+            "posteriormente pelo menu de Homologações."
+        )
+
+        return None
+
+    print(
+        "\n=== Iniciar Homologação do Projeto ==="
+    )
+
+    codigo_empresa = utils.ler_int(
+        "Código da Empresa responsável: "
+    )
+
+    codigo_concessionaria = utils.ler_int(
+        "Código da Concessionária: "
+    )
+
+    data_abertura = input(
+        "Data de abertura (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_abertura = input(
+        "Responsável pela abertura: "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_criada = (
+            homologacoes.criar_homologacao(
+                codigo_empresa=codigo_empresa,
+                codigo_projeto=projeto_criado["codigo"],
+                codigo_concessionaria=(
+                    codigo_concessionaria
+                ),
+                data_abertura=data_abertura,
+                responsavel_abertura=(
+                    responsavel_abertura
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nO Projeto foi criado, mas não foi possível "
+            "iniciar a Homologação:"
+        )
+
+        print(
+            str(erro)
+        )
+
+        print(
+            "\nA Homologação poderá ser iniciada "
+            "posteriormente pelo menu."
+        )
+
+        return None
+
+    print(
+        "\nHomologação iniciada com sucesso!"
+    )
+
+    print(
+        f"Código da Homologação: "
+        f"{homologacao_criada['codigo']}"
+    )
+
+    print(
+        f"Status inicial: "
+        f"{homologacao_criada['status']}"
+    )
+
+    return homologacao_criada
 
 def _coletar_dimensionamento():
     """
@@ -432,6 +583,10 @@ def converter_para_projeto(lista_orcamentos):
     print(
         f"Projeto criado com o código: "
         f"{projeto_criado['codigo']}"
+    )
+
+    _iniciar_homologacao_do_projeto(
+        projeto_criado
     )
 
     return projeto_criado

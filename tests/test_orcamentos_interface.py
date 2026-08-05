@@ -21,6 +21,10 @@ class TestOrcamentosInterface(unittest.TestCase):
 
         self.orcamentos = []
 
+    # ========================================================
+    # CADASTRO
+    # ========================================================
+
     @patch(
         "app.interface.orcamentos_interface."
         "salvar_orcamentos"
@@ -189,6 +193,10 @@ class TestOrcamentosInterface(unittest.TestCase):
             [],
         )
 
+    # ========================================================
+    # LISTAGEM E SELEÇÃO
+    # ========================================================
+
     @patch("builtins.print")
     def test_listar_orcamentos_vazio(
         self,
@@ -291,6 +299,10 @@ class TestOrcamentosInterface(unittest.TestCase):
             orcamento,
         )
 
+    # ========================================================
+    # ALTERAÇÃO DE STATUS
+    # ========================================================
+
     @patch(
         "app.interface.orcamentos_interface."
         "salvar_orcamentos"
@@ -368,6 +380,289 @@ class TestOrcamentosInterface(unittest.TestCase):
             orcamento,
         )
 
+    # ========================================================
+    # INTEGRAÇÃO PROJETO → HOMOLOGAÇÃO
+    # ========================================================
+
+    @patch(
+        "builtins.input",
+        return_value="1",
+    )
+    def test_confirmar_inicio_homologacao_deve_retornar_true(
+        self,
+        mock_input,
+    ):
+        """
+        A opção 1 deve confirmar o início da Homologação.
+        """
+
+        resultado = (
+            orcamentos_interface
+            ._confirmar_inicio_homologacao()
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+        mock_input.assert_called_once_with(
+            "Escolha uma opção: "
+        )
+
+    @patch(
+        "builtins.input",
+        return_value="2",
+    )
+    def test_confirmar_inicio_homologacao_deve_retornar_false(
+        self,
+        mock_input,
+    ):
+        """
+        A opção 2 deve recusar o início imediato
+        da Homologação.
+        """
+
+        resultado = (
+            orcamentos_interface
+            ._confirmar_inicio_homologacao()
+        )
+
+        self.assertFalse(
+            resultado
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "9",
+            "1",
+        ],
+    )
+    def test_confirmar_inicio_homologacao_deve_repetir_opcao_invalida(
+        self,
+        mock_input,
+        mock_print,
+    ):
+        """
+        Uma opção inválida deve ser rejeitada,
+        mantendo a pergunta até uma resposta válida.
+        """
+
+        resultado = (
+            orcamentos_interface
+            ._confirmar_inicio_homologacao()
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+        self.assertEqual(
+            mock_input.call_count,
+            2,
+        )
+
+        mock_print.assert_any_call(
+            "\nOpção inválida. Informe 1 ou 2."
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_confirmar_inicio_homologacao",
+        return_value=False,
+    )
+    def test_nao_iniciar_homologacao_deve_preservar_projeto(
+        self,
+        mock_confirmar,
+        mock_print,
+    ):
+        """
+        Quando o operador escolher Não:
+
+        - nenhuma Homologação deve ser criada;
+        - o Projeto deve permanecer válido;
+        - o helper deve retornar None.
+        """
+
+        projeto = {
+            "codigo": 50,
+        }
+
+        resultado = (
+            orcamentos_interface
+            ._iniciar_homologacao_do_projeto(
+                projeto
+            )
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        mock_confirmar.assert_called_once_with()
+
+        mock_print.assert_any_call(
+            "A Homologação poderá ser iniciada "
+            "posteriormente pelo menu de Homologações."
+        )
+
+    @patch(
+        "app.interface.orcamentos_interface."
+        "homologacoes.criar_homologacao"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "utils.ler_int",
+        side_effect=[
+            1,
+            2,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-04",
+            "Ana Lima",
+            "Abertura integrada.",
+        ],
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_confirmar_inicio_homologacao",
+        return_value=True,
+    )
+    def test_iniciar_homologacao_deve_criar_processo(
+        self,
+        mock_confirmar,
+        mock_input,
+        mock_ler_int,
+        mock_criar_homologacao,
+    ):
+        """
+        Quando o operador confirmar, os dados devem ser
+        encaminhados corretamente à fachada de Homologações.
+        """
+
+        projeto = {
+            "codigo": 50,
+        }
+
+        homologacao_criada = {
+            "codigo": 8,
+            "status": "EM_PREPARACAO",
+        }
+
+        mock_criar_homologacao.return_value = (
+            homologacao_criada
+        )
+
+        resultado = (
+            orcamentos_interface
+            ._iniciar_homologacao_do_projeto(
+                projeto
+            )
+        )
+
+        mock_criar_homologacao.assert_called_once_with(
+            codigo_empresa=1,
+            codigo_projeto=50,
+            codigo_concessionaria=2,
+            data_abertura="2026-08-04",
+            responsavel_abertura="Ana Lima",
+            observacoes="Abertura integrada.",
+        )
+
+        self.assertIs(
+            resultado,
+            homologacao_criada,
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "homologacoes.criar_homologacao",
+        side_effect=ValueError(
+            "Projeto já possui uma Homologação ativa."
+        ),
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "utils.ler_int",
+        side_effect=[
+            1,
+            2,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-04",
+            "Ana Lima",
+            "",
+        ],
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_confirmar_inicio_homologacao",
+        return_value=True,
+    )
+    def test_falha_na_homologacao_nao_deve_invalidar_projeto(
+        self,
+        mock_confirmar,
+        mock_input,
+        mock_ler_int,
+        mock_criar_homologacao,
+        mock_print,
+    ):
+        """
+        Uma falha ao abrir a Homologação não deve remover,
+        alterar ou invalidar o Projeto já criado.
+        """
+
+        projeto = {
+            "codigo": 50,
+            "status": "Aguardando documentação",
+        }
+
+        projeto_antes = projeto.copy()
+
+        resultado = (
+            orcamentos_interface
+            ._iniciar_homologacao_do_projeto(
+                projeto
+            )
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        self.assertEqual(
+            projeto,
+            projeto_antes,
+        )
+
+        mock_print.assert_any_call(
+            "Projeto já possui uma Homologação ativa."
+        )
+
+        mock_print.assert_any_call(
+            "\nA Homologação poderá ser iniciada "
+            "posteriormente pelo menu."
+        )
+
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_iniciar_homologacao_do_projeto"
+    )
     @patch(
         "app.interface.orcamentos_interface."
         "salvar_orcamentos"
@@ -395,6 +690,7 @@ class TestOrcamentosInterface(unittest.TestCase):
         mock_pode_converter,
         mock_criar_projeto,
         mock_salvar,
+        mock_iniciar_homologacao,
     ):
         """
         Deve criar o Projeto e atualizar
@@ -433,6 +729,10 @@ class TestOrcamentosInterface(unittest.TestCase):
             self.orcamentos
         )
 
+        mock_iniciar_homologacao.assert_called_once_with(
+            projeto
+        )
+        
         self.assertEqual(
             resultado,
             projeto,
