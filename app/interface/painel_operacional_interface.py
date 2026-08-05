@@ -89,6 +89,52 @@ def exibir_painel_operacional() -> None:
     )
 
     print()
+    print("-" * 60)
+    print("INDICADORES DE PROJETOS")
+    print("-" * 60)
+    print()
+
+    _exibir_indicador(
+        "Aguardando documentação",
+        projetos.quantidade_projetos_com_status(
+            "Aguardando documentação"
+        ),
+    )
+
+    _exibir_indicador(
+        "Em análise",
+        projetos.quantidade_projetos_com_status(
+            "Em análise pela distribuidora"
+        ),
+    )
+
+    _exibir_indicador(
+        "Com exigência",
+        projetos.quantidade_projetos_com_status(
+            "Correção solicitada"
+        ),
+    )
+
+    _exibir_indicador(
+        "Aprovados",
+        projetos.quantidade_projetos_com_status(
+            "Aprovado"
+        ),
+    )
+
+    _exibir_indicador(
+        "Homologados",
+        projetos.quantidade_projetos_com_status(
+            "Homologado"
+        ),
+    )
+
+    _exibir_indicador(
+        "Total geral",
+        projetos.quantidade_projetos(),
+    )
+
+    print()
 
     print(
         "Consulta realizada em: "

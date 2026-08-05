@@ -49,6 +49,22 @@ def codigo_projeto_existe(projetos, codigo):
         codigo,
     ) is not None
 
+def quantidade_projetos_por_status(
+    projetos,
+    status,
+):
+    """
+    Retorna a quantidade de Projetos que possuem
+    exatamente o status informado.
+
+    A função não altera a coleção recebida.
+    """
+
+    return sum(
+        1
+        for projeto in projetos
+        if projeto.get("status") == status
+    )
 
 def criar_dados_projeto(
     codigo,

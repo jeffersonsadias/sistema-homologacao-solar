@@ -32,13 +32,24 @@ class TestPainelOperacionalInterface(
     )
     @patch(
         "app.interface.painel_operacional_interface."
+        "projetos.quantidade_projetos_com_status",
+        side_effect=[
+            8,
+            4,
+            2,
+            5,
+            7,
+        ],
+    )
+    @patch(
+        "app.interface.painel_operacional_interface."
         "homologacoes.quantidade_homologacoes",
         return_value=1,
     )
     @patch(
         "app.interface.painel_operacional_interface."
         "projetos.quantidade_projetos",
-        return_value=2,
+        return_value=26,
     )
     @patch(
         "app.interface.painel_operacional_interface."
@@ -62,13 +73,14 @@ class TestPainelOperacionalInterface(
         mock_quantidade_orcamentos,
         mock_quantidade_projetos,
         mock_quantidade_homologacoes,
+        mock_quantidade_por_status,
         mock_data_hora,
         mock_print,
         mock_input,
     ):
         """
-        Deve consultar as fachadas e exibir todos
-        os indicadores e a data da consulta.
+        Deve exibir os totais gerais, os indicadores
+        de Projetos e a data da consulta.
         """
 
         mock_data_hora.return_value = datetime(
@@ -86,33 +98,58 @@ class TestPainelOperacionalInterface(
         )
 
         mock_quantidade_clientes.assert_called_once_with()
-
         mock_quantidade_empresas.assert_called_once_with()
-
         mock_quantidade_orcamentos.assert_called_once_with()
-
-        mock_quantidade_projetos.assert_called_once_with()
-
         mock_quantidade_homologacoes.assert_called_once_with()
 
-        mock_print.assert_any_call(
-            "Clientes........................     4"
+        self.assertEqual(
+            mock_quantidade_projetos.call_count,
+            2,
+        )
+
+        self.assertEqual(
+            mock_quantidade_por_status.call_args_list,
+            [
+                unittest.mock.call(
+                    "Aguardando documentação"
+                ),
+                unittest.mock.call(
+                    "Em análise pela distribuidora"
+                ),
+                unittest.mock.call(
+                    "Correção solicitada"
+                ),
+                unittest.mock.call(
+                    "Aprovado"
+                ),
+                unittest.mock.call(
+                    "Homologado"
+                ),
+            ],
         )
 
         mock_print.assert_any_call(
-            "Empresas........................     2"
+            "Aguardando documentação.........     8"
         )
 
         mock_print.assert_any_call(
-            "Orçamentos......................     3"
+            "Em análise......................     4"
         )
 
         mock_print.assert_any_call(
-            "Projetos........................     2"
+            "Com exigência...................     2"
         )
 
         mock_print.assert_any_call(
-            "Homologações....................     1"
+            "Aprovados.......................     5"
+        )
+
+        mock_print.assert_any_call(
+            "Homologados.....................     7"
+        )
+
+        mock_print.assert_any_call(
+            "Total geral.....................    26"
         )
 
         mock_print.assert_any_call(

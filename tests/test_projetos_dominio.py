@@ -5,6 +5,7 @@ from app.dominio.projetos import (
     codigo_projeto_existe,
     criar_dados_projeto,
     criar_dados_projeto_a_partir_do_orcamento,
+    quantidade_projetos_por_status,
 )
 
 
@@ -102,6 +103,58 @@ class TestProjetosDominio(unittest.TestCase):
                 self.projetos,
                 999,
             )
+        )
+
+    def test_quantidade_projetos_por_status(self):
+        """
+        Deve contar somente os Projetos
+        com o status informado.
+        """
+
+        quantidade = quantidade_projetos_por_status(
+            self.projetos,
+            "Aguardando documentação",
+        )
+
+        self.assertEqual(
+            quantidade,
+            1,
+        )
+
+    def test_quantidade_projetos_por_status_inexistente(self):
+        """
+        Deve retornar zero quando nenhum Projeto
+        possuir o status informado.
+        """
+
+        quantidade = quantidade_projetos_por_status(
+            self.projetos,
+            "Homologado",
+        )
+
+        self.assertEqual(
+            quantidade,
+            0,
+        )
+
+    def test_contagem_por_status_nao_deve_alterar_projetos(self):
+        """
+        A consulta não deve modificar a coleção recebida.
+        """
+
+        projetos_antes = [
+            projeto.copy()
+            for projeto in self.projetos
+        ]
+
+        quantidade_projetos_por_status(
+            self.projetos,
+            "Aguardando documentação",
+        )
+
+        self.assertEqual(
+            self.projetos,
+            projetos_antes,
         )
 
     def test_criar_dados_projeto(self):

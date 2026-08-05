@@ -17,6 +17,7 @@ from app import status
 from app.dominio.projetos import (
     buscar_projeto_por_codigo,
     criar_dados_projeto_a_partir_do_orcamento as criar_dados_projeto_do_orcamento,
+    quantidade_projetos_por_status as quantidade_por_status_no_dominio,
 )
 
 from app.infraestrutura.repositorio_projetos_json import (
@@ -122,4 +123,17 @@ def quantidade_projetos():
 
     return len(
         projetos
+    )
+
+def quantidade_projetos_com_status(
+    status_projeto,
+):
+    """
+    Retorna a quantidade de Projetos
+    que possuem o status informado.
+    """
+
+    return quantidade_por_status_no_dominio(
+        projetos,
+        status_projeto,
     )
