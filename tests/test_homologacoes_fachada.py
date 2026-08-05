@@ -205,6 +205,59 @@ class TestHomologacoesFachada(unittest.TestCase):
             homologacao_esperada,
         )
 
+    def test_quantidade_homologacoes(self):
+        """
+        Deve retornar a quantidade total de Homologações.
+        """
+
+        homologacoes.homologacoes = [
+            {
+                "codigo": 1,
+                "codigo_empresa": 10,
+            },
+            {
+                "codigo": 2,
+                "codigo_empresa": 20,
+            },
+        ]
+
+        resultado = homologacoes.quantidade_homologacoes()
+
+        self.assertEqual(
+            resultado,
+            2,
+        )
+
+    def test_quantidade_homologacoes_da_empresa(self):
+        """
+        Deve contar somente as Homologações
+        pertencentes à Empresa informada.
+        """
+
+        homologacoes.homologacoes = [
+            {
+                "codigo": 1,
+                "codigo_empresa": 10,
+            },
+            {
+                "codigo": 2,
+                "codigo_empresa": 10,
+            },
+            {
+                "codigo": 3,
+                "codigo_empresa": 20,
+            },
+        ]
+
+        resultado = homologacoes.quantidade_homologacoes(
+            codigo_empresa=10,
+        )
+
+        self.assertEqual(
+            resultado,
+            2,
+        )
+
     # ========================================================
     # CADASTRO
     # ========================================================

@@ -51,6 +51,18 @@ class TestOrcamentos(unittest.TestCase):
 
         self.assertIsNone(resultado)
 
+    def test_quantidade_orcamentos(self):
+        """
+        Deve retornar a quantidade de Orçamentos cadastrados.
+        """
+
+        resultado = orcamentos.quantidade_orcamentos()
+
+        self.assertEqual(
+            resultado,
+            2,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

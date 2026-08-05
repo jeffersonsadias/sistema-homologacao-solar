@@ -183,6 +183,35 @@ class TestMenuPrincipal(
 
     @patch(
         "app.menu."
+        "painel_operacional_interface."
+        "exibir_painel_operacional"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "19",
+            "0",
+        ],
+    )
+    def test_abrir_painel_operacional(
+        self,
+        mock_input,
+        mock_exibir_painel,
+    ):
+        """
+        A opção 19 deve abrir
+        o Painel Operacional.
+        """
+
+        menu.executar_menu()
+
+        (
+            mock_exibir_painel
+            .assert_called_once_with()
+        )
+
+    @patch(
+        "app.menu."
         "clientes."
         "cadastrar_cliente"
     )

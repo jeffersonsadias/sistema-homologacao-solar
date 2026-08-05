@@ -92,3 +92,12 @@ def buscar_clientes_por_nome(nome_busca):
         clientes,
         nome_busca,
     )
+
+def quantidade_clientes():
+    """
+    Retorna a quantidade total de Clientes cadastrados.
+    """
+
+    return len(
+        clientes
+    )

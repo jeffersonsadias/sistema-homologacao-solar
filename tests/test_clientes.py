@@ -78,6 +78,18 @@ class TestBuscaClientesPorNome(unittest.TestCase):
 
         self.assertEqual(resultado, [])
 
+    def test_quantidade_clientes(self):
+        """
+        Deve retornar a quantidade total de Clientes
+        cadastrados na fachada.
+        """
+
+        resultado = clientes.quantidade_clientes()
+
+        self.assertEqual(
+            resultado,
+            3,
+        )
 
 if __name__ == "__main__":
     unittest.main()

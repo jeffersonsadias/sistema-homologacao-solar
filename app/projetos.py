@@ -114,3 +114,12 @@ def criar_projeto_a_partir_do_orcamento(orcamento):
     salvar_projetos(projetos)
 
     return projeto
+
+def quantidade_projetos():
+    """
+    Retorna a quantidade total de Projetos cadastrados.
+    """
+
+    return len(
+        projetos
+    )

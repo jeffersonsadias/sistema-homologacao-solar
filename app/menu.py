@@ -18,6 +18,7 @@ from app import utils
 from app.interface import (
     empresas_interface,
     homologacoes_interface,
+    painel_operacional_interface,
     usuarios_interface,
     vinculos_unidade_projeto_interface,
 )
@@ -102,6 +103,10 @@ def exibir_menu():
 
     print(
         "18 - Gerenciar homologações"
+    )
+
+    print(
+        "19 - Painel Operacional"
     )
 
     print(
@@ -232,6 +237,9 @@ def executar_menu():
 
         elif opcao == "18":
             homologacoes_interface.menu_homologacoes()
+
+        elif opcao == "19":
+            painel_operacional_interface.exibir_painel_operacional()
 
         elif opcao == "0":
             print(

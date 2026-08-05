@@ -89,3 +89,12 @@ def converter_para_projeto():
     return orcamentos_interface.converter_para_projeto(
         orcamentos
     )
+
+def quantidade_orcamentos():
+    """
+    Retorna a quantidade total de Orçamentos cadastrados.
+    """
+
+    return len(
+        orcamentos
+    )

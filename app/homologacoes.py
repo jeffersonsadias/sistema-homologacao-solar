@@ -197,6 +197,22 @@ def listar_homologacoes(
         == codigo_empresa
     ]
 
+def quantidade_homologacoes(
+    codigo_empresa: int | None = None,
+) -> int:
+    """
+    Retorna a quantidade de Homologações cadastradas.
+
+    Quando codigo_empresa for informado, considera somente
+    as Homologações pertencentes à Empresa indicada.
+    """
+
+    return len(
+        listar_homologacoes(
+            codigo_empresa=codigo_empresa,
+        )
+    )
+
 def buscar_homologacao_por_projeto(
     codigo_projeto: int,
     codigo_empresa: int,

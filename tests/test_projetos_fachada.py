@@ -167,6 +167,24 @@ class TestProjetosFachada(unittest.TestCase):
             projeto_alterado,
         )
 
+    def test_quantidade_projetos(self):
+        """
+        Deve retornar a quantidade de Projetos cadastrados.
+        """
+
+        projetos.projetos = [
+            {"codigo": 1},
+            {"codigo": 2},
+            {"codigo": 3},
+        ]
+
+        resultado = projetos.quantidade_projetos()
+
+        self.assertEqual(
+            resultado,
+            3,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
