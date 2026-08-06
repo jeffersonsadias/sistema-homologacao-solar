@@ -327,6 +327,8 @@ Inicialmente são previstos:
 ```text
 Gestão Corporativa
 
+Operações
+
 Homologação
 
 CRM

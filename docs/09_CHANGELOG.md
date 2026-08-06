@@ -64,3 +64,22 @@ As futuras Sprints deverão registrar:
 - Introdução dos Architecture Decision Records (ADR)
 - Estruturação da plataforma como SolarCore Platform
 - Validação completa da suíte de testes
+
+## Sprint 3
+
+### Adicionado
+
+- Painel Operacional
+- Dashboard Operacional
+- Indicadores Gerais
+- Indicadores de Projetos
+- Indicadores de Homologações
+- Indicadores de Pendências
+- Consultas Rápidas
+- Consultas por Cliente
+- Consultas por Projeto
+- Consultas por Empresa
+- Consultas por Concessionária
+- Consultas por Status
+- Integração do Dashboard ao fluxo operacional
+- Ampliação da suíte de testes

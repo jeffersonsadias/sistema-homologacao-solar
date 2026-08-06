@@ -26,6 +26,7 @@ Este índice organiza todos os documentos técnicos da plataforma e serve como p
 | 07_SPRINT_02.md | Registro da Sprint 2       |
 | 08_BACKLOG.md   | Funcionalidades planejadas |
 | 09_CHANGELOG.md | Histórico das alterações   |
+| 10_SPRINT_03.md | Registro da Srint 3        |
 
 ---
 

@@ -165,6 +165,17 @@ Ela coordena:
 - o sistema deve preservar a consistência de todo o
   agregado antes da persistência.
 
+## Consultas Operacionais
+
+As funcionalidades de consulta da plataforma possuem natureza exclusivamente informativa.
+
+Regras:
+
+- não podem alterar dados;
+- devem utilizar apenas funções públicas das fachadas;
+- não podem acessar diretamente as coleções internas dos módulos;
+- devem preservar integralmente a integridade dos dados durante a consulta.
+
 ## Estados
 
 1. Aguardando documentação
