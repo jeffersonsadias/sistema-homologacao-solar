@@ -114,8 +114,94 @@ class TestProjetosFachada(unittest.TestCase):
 
     @patch(
         "app.projetos."
-        "projetos_interface.mostrar_projeto"
+        "buscar_por_cliente_no_dominio"
     )
+    def test_buscar_projetos_do_cliente_encaminha_para_dominio(
+        self,
+        mock_buscar,
+    ):
+        """
+        Deve encaminhar ao domínio a busca
+        dos Projetos vinculados ao Cliente.
+        """
+
+        projetos_encontrados = [
+            {
+                "codigo": 1,
+                "cliente": 10,
+            },
+            {
+                "codigo": 2,
+                "cliente": 10,
+            },
+        ]
+
+        mock_buscar.return_value = (
+            projetos_encontrados
+        )
+
+        resultado = (
+            projetos.buscar_projetos_do_cliente(
+                10
+            )
+        )
+
+        mock_buscar.assert_called_once_with(
+            projetos.projetos,
+            10,
+        )
+
+        self.assertEqual(
+            resultado,
+            projetos_encontrados,
+        )
+
+    @patch(
+        "app.projetos."
+        "buscar_por_status_no_dominio"
+    )
+    def test_buscar_projetos_com_status_encaminha_para_dominio(
+        self,
+        mock_buscar,
+    ):
+        """
+        Deve encaminhar ao domínio
+        a busca dos Projetos por status.
+        """
+
+        projetos_encontrados = [
+            {
+                "codigo": 1,
+                "status": "Aprovado",
+            },
+            {
+                "codigo": 2,
+                "status": "Aprovado",
+            },
+        ]
+
+        mock_buscar.return_value = (
+            projetos_encontrados
+        )
+
+        resultado = projetos.buscar_projetos_com_status(
+            "Aprovado"
+        )
+
+        mock_buscar.assert_called_once_with(
+            projetos.projetos,
+            "Aprovado",
+        )
+
+        self.assertEqual(
+            resultado,
+            projetos_encontrados,
+        )
+
+    @patch(
+            "app.projetos."
+            "projetos_interface.mostrar_projeto"
+        )
     def test_mostrar_projeto_encaminha_para_interface(
         self,
         mock_mostrar_projeto,

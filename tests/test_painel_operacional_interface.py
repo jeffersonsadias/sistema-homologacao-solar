@@ -20,10 +20,6 @@ class TestPainelOperacionalInterface(
     """
 
     @patch(
-        "builtins.input",
-        return_value="",
-    )
-    @patch(
         "builtins.print"
     )
     @patch(
@@ -117,8 +113,8 @@ class TestPainelOperacionalInterface(
         mock_total_pendencias,
         mock_data_hora,
         mock_print,
-        mock_input,
     ):
+        
         """
         Deve exibir os totais gerais, os indicadores
         de Projetos e a data da consulta.
@@ -135,7 +131,7 @@ class TestPainelOperacionalInterface(
 
         (
             painel_operacional_interface
-            .exibir_painel_operacional()
+            ._exibir_dashboard_operacional()
         )
 
         mock_quantidade_clientes.assert_called_once_with()
@@ -210,10 +206,6 @@ class TestPainelOperacionalInterface(
             "04/08/2026 21:45:30"
         )
 
-        mock_input.assert_called_once_with(
-            "\nPressione Enter para voltar..."
-        )
-
         mock_print.assert_any_call(
             "PENDÊNCIAS DE HOMOLOGAÇÃO"
         )
@@ -242,6 +234,128 @@ class TestPainelOperacionalInterface(
             "Total de pendências.............    15"
         )
 
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "consultas_rapidas_interface."
+        "menu_consultas_rapidas"
+    )
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "_exibir_dashboard_operacional"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "1",
+            "0",
+        ],
+    )
+    def test_painel_deve_abrir_consultas_rapidas(
+        self,
+        mock_input,
+        mock_exibir_dashboard,
+        mock_menu_consultas,
+    ):
+        """
+        A opção 1 deve abrir o menu
+        de Consultas Rápidas.
+        """
+
+        (
+            painel_operacional_interface
+            .exibir_painel_operacional()
+        )
+
+        mock_menu_consultas.assert_called_once_with()
+
+        self.assertEqual(
+            mock_exibir_dashboard.call_count,
+            2,
+        )
+
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "_exibir_dashboard_operacional"
+    )
+    @patch(
+        "builtins.input",
+        return_value="0",
+    )
+    def test_painel_deve_voltar_ao_menu_principal(
+        self,
+        mock_input,
+        mock_exibir_dashboard,
+    ):
+        """
+        A opção 0 deve encerrar
+        o Painel Operacional.
+        """
+
+        resultado = (
+            painel_operacional_interface
+            .exibir_painel_operacional()
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        mock_exibir_dashboard.assert_called_once_with()
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.painel_operacional_interface."
+        "_exibir_dashboard_operacional"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "99",
+            "",
+            "0",
+        ],
+    )
+    def test_painel_deve_tratar_opcao_invalida(
+        self,
+        mock_input,
+        mock_exibir_dashboard,
+        mock_print,
+    ):
+        """
+        Uma opção inválida deve exibir erro
+        e manter o Painel em execução.
+        """
+
+        (
+            painel_operacional_interface
+            .exibir_painel_operacional()
+        )
+
+        mock_print.assert_any_call(
+            "\nOpção inválida."
+        )
+
+        self.assertEqual(
+            mock_exibir_dashboard.call_count,
+            2,
+        )
+
+        self.assertEqual(
+            mock_input.call_args_list,
+            [
+                unittest.mock.call(
+                    "\nEscolha uma opção: "
+                ),
+                unittest.mock.call(
+                    "\nPressione Enter para continuar..."
+                ),
+                unittest.mock.call(
+                    "\nEscolha uma opção: "
+                ),
+            ],
+        )
 
 if __name__ == "__main__":
     unittest.main()

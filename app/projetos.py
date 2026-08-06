@@ -16,6 +16,8 @@ from app import status
 
 from app.dominio.projetos import (
     buscar_projeto_por_codigo,
+    buscar_projetos_por_cliente as buscar_por_cliente_no_dominio,
+    buscar_projetos_por_status as buscar_por_status_no_dominio,
     criar_dados_projeto_a_partir_do_orcamento as criar_dados_projeto_do_orcamento,
     quantidade_projetos_por_status as quantidade_por_status_no_dominio,
 )
@@ -65,6 +67,31 @@ def buscar_projeto(codigo):
         codigo,
     )
 
+def buscar_projetos_do_cliente(
+    codigo_cliente,
+):
+    """
+    Retorna os Projetos vinculados
+    ao Cliente informado.
+    """
+
+    return buscar_por_cliente_no_dominio(
+        projetos,
+        codigo_cliente,
+    )
+
+def buscar_projetos_com_status(
+    status_projeto,
+):
+    """
+    Retorna os Projetos que possuem
+    o status informado.
+    """
+
+    return buscar_por_status_no_dominio(
+        projetos,
+        status_projeto,
+    )
 
 def mostrar_projeto(projeto):
     """

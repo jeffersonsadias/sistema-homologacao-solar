@@ -23,6 +23,9 @@ from app import homologacoes
 from app import orcamentos
 from app import projetos
 
+from app.interface import (
+    consultas_rapidas_interface,
+)
 
 def _obter_data_hora_consulta() -> datetime:
     """
@@ -46,13 +49,10 @@ def _exibir_indicador(
         f"{nome:.<32}{quantidade:>6}"
     )
 
-def exibir_painel_operacional() -> None:
+def _exibir_dashboard_operacional() -> None:
     """
-    Exibe o Dashboard Operacional do sistema.
-
-    Os valores são obtidos por funções públicas
-    das fachadas, sem acessar diretamente
-    suas coleções internas.
+    Exibe os indicadores gerais, os indicadores
+    de Projetos e as pendências de Homologação.
     """
 
     momento_consulta = _obter_data_hora_consulta()
@@ -195,6 +195,40 @@ def exibir_painel_operacional() -> None:
     print()
     print("=" * 60)
 
-    input(
-        "\nPressione Enter para voltar..."
-    )
+def exibir_painel_operacional() -> None:
+    """
+    Exibe o Painel Operacional e permite acessar
+    as Consultas Rápidas.
+
+    O menu permanece aberto até que o operador
+    escolha retornar ao menu principal.
+    """
+
+    while True:
+        _exibir_dashboard_operacional()
+
+        print()
+        print("1 - Abrir Consultas Rápidas")
+        print("0 - Voltar ao menu principal")
+
+        opcao = input(
+            "\nEscolha uma opção: "
+        ).strip()
+
+        if opcao == "1":
+            (
+                consultas_rapidas_interface
+                .menu_consultas_rapidas()
+            )
+
+        elif opcao == "0":
+            return
+
+        else:
+            print(
+                "\nOpção inválida."
+            )
+
+            input(
+                "\nPressione Enter para continuar..."
+            )

@@ -29,6 +29,8 @@ from app import projetos
 from app.dominio.homologacoes import (
     buscar_homologacao_ativa_por_projeto,
     buscar_homologacao_por_codigo,
+    buscar_homologacoes_por_concessionaria,
+    buscar_homologacoes_por_status,
     criar_dados_homologacao,
     projeto_possui_homologacao_ativa,
     quantidade_homologacoes_aguardando_envio,
@@ -57,6 +59,14 @@ buscar_ativa_por_projeto_no_dominio = (
 
 buscar_por_codigo_no_dominio = (
     buscar_homologacao_por_codigo
+)
+
+buscar_por_concessionaria_no_dominio = (
+    buscar_homologacoes_por_concessionaria
+)
+
+buscar_por_status_no_dominio = (
+    buscar_homologacoes_por_status
 )
 
 # ============================================================
@@ -206,6 +216,42 @@ def listar_homologacoes(
         if homologacao.get("codigo_empresa")
         == codigo_empresa
     ]
+
+def listar_homologacoes_por_concessionaria(
+    codigo_concessionaria: int,
+    codigo_empresa: int | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Retorna as Homologações vinculadas
+    à Concessionária informada.
+
+    Quando codigo_empresa for fornecido, a consulta
+    também respeita o isolamento entre Empresas.
+    """
+
+    return buscar_por_concessionaria_no_dominio(
+        homologacoes=homologacoes,
+        codigo_concessionaria=codigo_concessionaria,
+        codigo_empresa=codigo_empresa,
+    )
+
+def listar_homologacoes_por_status(
+    status: str | StatusHomologacao,
+    codigo_empresa: int | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Retorna as Homologações que possuem
+    o status informado.
+
+    Quando codigo_empresa for fornecido, a consulta
+    também respeita o isolamento entre Empresas.
+    """
+
+    return buscar_por_status_no_dominio(
+        homologacoes=homologacoes,
+        status=status,
+        codigo_empresa=codigo_empresa,
+    )
 
 def quantidade_homologacoes(
     codigo_empresa: int | None = None,

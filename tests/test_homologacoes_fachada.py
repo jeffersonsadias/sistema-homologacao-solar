@@ -172,6 +172,94 @@ class TestHomologacoesFachada(unittest.TestCase):
 
     @patch(
         "app.homologacoes."
+        "buscar_por_concessionaria_no_dominio"
+    )
+    def test_listar_homologacoes_por_concessionaria(
+        self,
+        mock_buscar,
+    ):
+        """
+        Deve encaminhar ao domínio a busca por
+        Concessionária e Empresa.
+        """
+
+        homologacoes_encontradas = [
+            {
+                "codigo": 1,
+                "codigo_empresa": 10,
+                "codigo_concessionaria": 30,
+            }
+        ]
+
+        mock_buscar.return_value = (
+            homologacoes_encontradas
+        )
+
+        resultado = (
+            homologacoes
+            .listar_homologacoes_por_concessionaria(
+                codigo_concessionaria=30,
+                codigo_empresa=10,
+            )
+        )
+
+        mock_buscar.assert_called_once_with(
+            homologacoes=homologacoes.homologacoes,
+            codigo_concessionaria=30,
+            codigo_empresa=10,
+        )
+
+        self.assertEqual(
+            resultado,
+            homologacoes_encontradas,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "buscar_por_status_no_dominio"
+    )
+    def test_listar_homologacoes_por_status(
+        self,
+        mock_buscar,
+    ):
+        """
+        Deve encaminhar ao domínio a busca
+        por status e Empresa.
+        """
+
+        homologacoes_encontradas = [
+            {
+                "codigo": 1,
+                "codigo_empresa": 10,
+                "status": "EM_ANALISE",
+            }
+        ]
+
+        mock_buscar.return_value = (
+            homologacoes_encontradas
+        )
+
+        resultado = (
+            homologacoes
+            .listar_homologacoes_por_status(
+                status="EM_ANALISE",
+                codigo_empresa=10,
+            )
+        )
+
+        mock_buscar.assert_called_once_with(
+            homologacoes=homologacoes.homologacoes,
+            status="EM_ANALISE",
+            codigo_empresa=10,
+        )
+
+        self.assertEqual(
+            resultado,
+            homologacoes_encontradas,
+        )
+
+    @patch(
+        "app.homologacoes."
         "buscar_ativa_por_projeto_no_dominio"
     )
     def test_buscar_homologacao_por_projeto(

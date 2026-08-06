@@ -11,6 +11,8 @@ from app.dominio.homologacoes import (
     aplicar_evento_homologacao,
     buscar_homologacao_ativa_por_projeto,
     buscar_homologacao_por_codigo,
+    buscar_homologacoes_por_concessionaria,
+    buscar_homologacoes_por_status,
     buscar_submissao_por_codigo,
     buscar_submissao_por_numero_sequencial,
     codigo_homologacao_existe,
@@ -529,6 +531,126 @@ class TestHomologacoesDominio(unittest.TestCase):
 
         self.assertIsNone(resultado)
 
+    def test_buscar_homologacoes_por_concessionaria(
+        self,
+    ):
+        """
+        Deve retornar somente as Homologações
+        da Concessionária informada.
+        """
+
+        outra_homologacao = criar_dados_homologacao(
+            codigo=3,
+            codigo_empresa=1,
+            codigo_projeto=30,
+            codigo_concessionaria=99,
+            data_abertura="2026-07-01",
+            responsavel_abertura="Ana Lima",
+            prazo_estimado_dias=45,
+        )
+
+        self.homologacoes.append(
+            outra_homologacao
+        )
+
+        resultado = buscar_homologacoes_por_concessionaria(
+            homologacoes=self.homologacoes,
+            codigo_concessionaria=2,
+        )
+
+        self.assertEqual(
+            len(resultado),
+            2,
+        )
+
+        self.assertTrue(
+            all(
+                homologacao["codigo_concessionaria"] == 2
+                for homologacao in resultado
+            )
+        )
+
+    def test_busca_por_concessionaria_deve_respeitar_empresa(
+        self,
+    ):
+        """
+        Quando a Empresa for informada, a consulta
+        deve aplicar também o isolamento multiempresa.
+        """
+
+        outra_empresa = criar_dados_homologacao(
+            codigo=3,
+            codigo_empresa=20,
+            codigo_projeto=30,
+            codigo_concessionaria=2,
+            data_abertura="2026-07-01",
+            responsavel_abertura="Ana Lima",
+            prazo_estimado_dias=45,
+        )
+
+        self.homologacoes.append(
+            outra_empresa
+        )
+
+        resultado = buscar_homologacoes_por_concessionaria(
+            homologacoes=self.homologacoes,
+            codigo_concessionaria=2,
+            codigo_empresa=1,
+        )
+
+        self.assertEqual(
+            len(resultado),
+            2,
+        )
+
+        self.assertTrue(
+            all(
+                homologacao["codigo_empresa"] == 1
+                for homologacao in resultado
+            )
+        )
+
+    def test_busca_por_concessionaria_sem_resultados(
+        self,
+    ):
+        """
+        Deve retornar lista vazia quando não houver
+        Homologações para a Concessionária.
+        """
+
+        resultado = buscar_homologacoes_por_concessionaria(
+            homologacoes=self.homologacoes,
+            codigo_concessionaria=999,
+        )
+
+        self.assertEqual(
+            resultado,
+            [],
+        )
+
+    def test_busca_por_concessionaria_nao_deve_alterar_colecao(
+        self,
+    ):
+        """
+        A consulta não deve modificar
+        as Homologações recebidas.
+        """
+
+        homologacoes_antes = [
+            homologacao.copy()
+            for homologacao in self.homologacoes
+        ]
+
+        buscar_homologacoes_por_concessionaria(
+            homologacoes=self.homologacoes,
+            codigo_concessionaria=2,
+        )
+
+        self.assertEqual(
+            self.homologacoes,
+            homologacoes_antes,
+        )
+
     def test_codigo_homologacao_deve_existir(self):
         resultado = codigo_homologacao_existe(
             homologacoes=self.homologacoes,
@@ -596,6 +718,144 @@ class TestHomologacoesDominio(unittest.TestCase):
         self.assertEqual(
             resultado,
             1,
+        )
+
+    def test_buscar_homologacoes_por_status(
+        self,
+    ):
+        """
+        Deve retornar somente as Homologações
+        que possuem o status informado.
+        """
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .AGUARDANDO_DOCUMENTACAO
+            .value
+        )
+
+        resultado = buscar_homologacoes_por_status(
+            homologacoes=self.homologacoes,
+            status=(
+                StatusHomologacao
+                .AGUARDANDO_DOCUMENTACAO
+            ),
+        )
+
+        self.assertEqual(
+            len(resultado),
+            1,
+        )
+
+        self.assertEqual(
+            resultado[0]["codigo"],
+            self.homologacao_ativa["codigo"],
+        )
+
+    def test_busca_de_homologacoes_por_status_deve_aceitar_texto(
+        self,
+    ):
+        """
+        A consulta deve aceitar o valor textual
+        persistido no JSON.
+        """
+
+        resultado = buscar_homologacoes_por_status(
+            homologacoes=self.homologacoes,
+            status="CONCLUIDA",
+        )
+
+        self.assertEqual(
+            len(resultado),
+            1,
+        )
+
+        self.assertEqual(
+            resultado[0]["codigo"],
+            self.homologacao_concluida["codigo"],
+        )
+
+    def test_busca_por_status_deve_respeitar_empresa(
+        self,
+    ):
+        """
+        Quando a Empresa for informada, a consulta
+        deve aplicar o isolamento multiempresa.
+        """
+
+        outra_empresa = criar_dados_homologacao(
+            codigo=3,
+            codigo_empresa=20,
+            codigo_projeto=30,
+            codigo_concessionaria=2,
+            data_abertura="2026-07-01",
+            responsavel_abertura="Ana Lima",
+            prazo_estimado_dias=45,
+        )
+
+        outra_empresa["status"] = (
+            StatusHomologacao.CONCLUIDA.value
+        )
+
+        self.homologacoes.append(
+            outra_empresa
+        )
+
+        resultado = buscar_homologacoes_por_status(
+            homologacoes=self.homologacoes,
+            status=StatusHomologacao.CONCLUIDA,
+            codigo_empresa=1,
+        )
+
+        self.assertEqual(
+            len(resultado),
+            1,
+        )
+
+        self.assertEqual(
+            resultado[0]["codigo_empresa"],
+            1,
+        )
+
+    def test_busca_de_homologacoes_por_status_sem_resultados(
+        self,
+    ):
+        """
+        Deve retornar lista vazia quando nenhuma Homologação
+        possuir o status informado.
+        """
+
+        resultado = buscar_homologacoes_por_status(
+            homologacoes=self.homologacoes,
+            status=StatusHomologacao.EM_ANALISE,
+        )
+
+        self.assertEqual(
+            resultado,
+            [],
+        )
+
+    def test_busca_de_homologacoes_por_status_nao_altera_colecao(
+        self,
+    ):
+        """
+        A consulta não deve modificar
+        as Homologações recebidas.
+        """
+
+        homologacoes_antes = [
+            homologacao.copy()
+            for homologacao in self.homologacoes
+        ]
+
+        buscar_homologacoes_por_status(
+            homologacoes=self.homologacoes,
+            status=StatusHomologacao.CONCLUIDA,
+        )
+
+        self.assertEqual(
+            self.homologacoes,
+            homologacoes_antes,
         )
 
     def test_homologacao_deve_identificar_exigencia_aberta(

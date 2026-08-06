@@ -2,6 +2,8 @@ import unittest
 
 from app.dominio.projetos import (
     buscar_projeto_por_codigo,
+    buscar_projetos_por_cliente,
+    buscar_projetos_por_status,
     codigo_projeto_existe,
     criar_dados_projeto,
     criar_dados_projeto_a_partir_do_orcamento,
@@ -86,6 +88,109 @@ class TestProjetosDominio(unittest.TestCase):
 
         self.assertIsNone(projeto)
 
+    def test_buscar_projetos_por_cliente(
+        self,
+    ):
+        """
+        Deve retornar somente os Projetos
+        pertencentes ao Cliente informado.
+        """
+
+        resultado = buscar_projetos_por_cliente(
+            self.projetos,
+            10,
+        )
+
+        self.assertEqual(
+            len(resultado),
+            1,
+        )
+
+        self.assertEqual(
+            resultado[0]["codigo"],
+            1,
+        )
+
+    def test_buscar_projetos_por_cliente_sem_resultados(
+        self,
+    ):
+        """
+        Deve retornar uma lista vazia quando o Cliente
+        não possuir Projetos.
+        """
+
+        resultado = buscar_projetos_por_cliente(
+            self.projetos,
+            999,
+        )
+
+        self.assertEqual(
+            resultado,
+            [],
+        )
+
+    def test_buscar_varios_projetos_do_mesmo_cliente(
+        self,
+    ):
+        """
+        Deve retornar todos os Projetos
+        vinculados ao mesmo Cliente.
+        """
+
+        self.projetos.append(
+            {
+                "codigo": 3,
+                "cliente": 10,
+                "distribuidora": "Neoenergia Coelba",
+                "potencia": 12.0,
+                "status": "Aprovado",
+            }
+        )
+
+        resultado = buscar_projetos_por_cliente(
+            self.projetos,
+            10,
+        )
+
+        self.assertEqual(
+            len(resultado),
+            2,
+        )
+
+        self.assertEqual(
+            [
+                projeto["codigo"]
+                for projeto in resultado
+            ],
+            [
+                1,
+                3,
+            ],
+        )
+
+    def test_busca_por_cliente_nao_deve_alterar_projetos(
+        self,
+    ):
+        """
+        A consulta não deve modificar
+        a coleção recebida.
+        """
+
+        projetos_antes = [
+            projeto.copy()
+            for projeto in self.projetos
+        ]
+
+        buscar_projetos_por_cliente(
+            self.projetos,
+            10,
+        )
+
+        self.assertEqual(
+            self.projetos,
+            projetos_antes,
+        )
+
     def test_codigo_projeto_existe(self):
         """
         Deve informar corretamente se o código existe.
@@ -148,6 +253,70 @@ class TestProjetosDominio(unittest.TestCase):
         ]
 
         quantidade_projetos_por_status(
+            self.projetos,
+            "Aguardando documentação",
+        )
+
+        self.assertEqual(
+            self.projetos,
+            projetos_antes,
+        )
+
+    def test_buscar_projetos_por_status(
+        self,
+    ):
+        """
+        Deve retornar somente os Projetos
+        que possuem o status informado.
+        """
+
+        resultado = buscar_projetos_por_status(
+            self.projetos,
+            "Aguardando documentação",
+        )
+
+        self.assertEqual(
+            len(resultado),
+            1,
+        )
+
+        self.assertEqual(
+            resultado[0]["codigo"],
+            1,
+        )
+
+    def test_buscar_projetos_por_status_sem_resultados(
+        self,
+    ):
+        """
+        Deve retornar uma lista vazia quando não houver
+        Projetos com o status informado.
+        """
+
+        resultado = buscar_projetos_por_status(
+            self.projetos,
+            "Homologado",
+        )
+
+        self.assertEqual(
+            resultado,
+            [],
+        )
+
+    def test_busca_de_projetos_por_status_nao_deve_alterar_colecao(
+        self,
+    ):
+        """
+        A consulta não deve modificar
+        os Projetos recebidos.
+        """
+
+        projetos_antes = [
+            projeto.copy()
+            for projeto in self.projetos
+        ]
+
+        buscar_projetos_por_status(
             self.projetos,
             "Aguardando documentação",
         )

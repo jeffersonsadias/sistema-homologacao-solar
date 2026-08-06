@@ -1135,6 +1135,36 @@ def buscar_homologacao_por_codigo(
 
     return None
 
+def buscar_homologacoes_por_concessionaria(
+    homologacoes: list[dict],
+    codigo_concessionaria: int,
+    codigo_empresa: int | None = None,
+) -> list[dict]:
+    """
+    Retorna as Homologações vinculadas
+    à Concessionária informada.
+
+    Quando codigo_empresa for fornecido, a consulta
+    também respeita o isolamento entre Empresas.
+
+    A função retorna uma nova lista e não altera
+    a coleção recebida.
+    """
+
+    return [
+        homologacao
+        for homologacao in homologacoes
+        if (
+            homologacao.get("codigo_concessionaria")
+            == codigo_concessionaria
+            and (
+                codigo_empresa is None
+                or homologacao.get("codigo_empresa")
+                == codigo_empresa
+            )
+        )
+    ]
+
 def codigo_homologacao_existe(
     homologacoes: list[dict],
     codigo: int,
@@ -1172,6 +1202,42 @@ def quantidade_homologacoes_por_status(
         if homologacao.get("status")
         == status_convertido.value
     )
+
+def buscar_homologacoes_por_status(
+    homologacoes: list[dict],
+    status: str | StatusHomologacao,
+    codigo_empresa: int | None = None,
+) -> list[dict]:
+    """
+    Retorna as Homologações que possuem
+    o status informado.
+
+    Aceita o Enum StatusHomologacao ou seu valor textual.
+
+    Quando codigo_empresa for informado, a consulta
+    também respeita o isolamento entre Empresas.
+
+    A função retorna uma nova lista e não altera
+    a coleção recebida.
+    """
+
+    status_convertido = _converter_status_homologacao(
+        status
+    )
+
+    return [
+        homologacao
+        for homologacao in homologacoes
+        if (
+            homologacao.get("status")
+            == status_convertido.value
+            and (
+                codigo_empresa is None
+                or homologacao.get("codigo_empresa")
+                == codigo_empresa
+            )
+        )
+    ]
 
 def _iterar_exigencias_homologacao(
     homologacao: dict,

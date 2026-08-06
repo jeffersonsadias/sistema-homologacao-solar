@@ -34,6 +34,23 @@ def buscar_projeto_por_codigo(projetos, codigo):
 
     return None
 
+def buscar_projetos_por_cliente(
+    projetos,
+    codigo_cliente,
+):
+    """
+    Retorna todos os Projetos vinculados
+    ao Cliente informado.
+
+    A função retorna uma nova lista e não altera
+    a coleção recebida.
+    """
+
+    return [
+        projeto
+        for projeto in projetos
+        if projeto.get("cliente") == codigo_cliente
+    ]
 
 def codigo_projeto_existe(projetos, codigo):
     """
@@ -65,6 +82,24 @@ def quantidade_projetos_por_status(
         for projeto in projetos
         if projeto.get("status") == status
     )
+
+def buscar_projetos_por_status(
+    projetos,
+    status,
+):
+    """
+    Retorna os Projetos que possuem
+    exatamente o status informado.
+
+    A função retorna uma nova lista e não altera
+    a coleção recebida.
+    """
+
+    return [
+        projeto
+        for projeto in projetos
+        if projeto.get("status") == status
+    ]
 
 def criar_dados_projeto(
     codigo,
