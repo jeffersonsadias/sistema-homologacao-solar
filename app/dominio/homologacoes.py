@@ -101,6 +101,9 @@ from app.dominio.movimentacoes_homologacao import (
     criar_movimentacao_de_abertura,
     criar_movimentacao_de_status,
     criar_movimentacao_documento_adicionado,
+    criar_movimentacao_instalacao_concluida,
+    criar_movimentacao_instalacao_iniciada,
+    criar_movimentacao_instalacao_planejada,
     criar_movimentacao_resposta_concessionaria,
     criar_movimentacao_resposta_exigencia,
     criar_movimentacao_status_documento,
@@ -108,6 +111,15 @@ from app.dominio.movimentacoes_homologacao import (
     criar_movimentacao_submissao_adicionada,
     criar_movimentacao_submissao_enviada,
     criar_movimentacao_submissao_protocolada,
+)
+
+from app.dominio.operacoes_campo import (
+    criar_dados_operacoes_campo,
+    criar_dados_planejamento_instalacao,
+    preparar_conclusao_instalacao,
+    preparar_inicio_instalacao,
+    validar_instalacao,
+    validar_operacoes_campo,
 )
 
 # ============================================================
@@ -128,6 +140,7 @@ from app.dominio.movimentacoes_homologacao import (
 # 12. Regras relacionais privadas de Submissões
 # 13. Operações de Submissões
 # 14. Operações de Respostas da concessionária
+# 15. Operações de Campo
 #
 # As funções privadas aparecem antes das operações públicas que
 # dependem delas. Essa organização facilita a navegação sem dividir
@@ -888,6 +901,59 @@ def _validar_homologacao_nao_terminal(
 
     return status_homologacao
 
+def _preparar_operacoes_campo_candidatas(
+    homologacao: dict,
+) -> dict:
+    """
+    Cria uma estrutura candidata das Operações de Campo.
+
+    Quando a Homologação for um registro antigo e ainda não
+    possuir operacoes_campo, uma nova estrutura é preparada.
+
+    A estrutura real da Homologação não é modificada.
+    """
+
+    operacoes_atuais = homologacao.get(
+        "operacoes_campo"
+    )
+
+    if operacoes_atuais is None:
+        return criar_dados_operacoes_campo()
+
+    validar_operacoes_campo(
+        operacoes_atuais
+    )
+
+    instalacao_atual = operacoes_atuais[
+        "instalacao"
+    ]
+
+    ligacao_atual = operacoes_atuais[
+        "ligacao"
+    ]
+
+    return {
+        "instalacao": (
+            instalacao_atual.copy()
+            if isinstance(
+                instalacao_atual,
+                dict,
+            )
+            else None
+        ),
+        "vistorias": list(
+            operacoes_atuais["vistorias"]
+        ),
+        "ligacao": (
+            ligacao_atual.copy()
+            if isinstance(
+                ligacao_atual,
+                dict,
+            )
+            else None
+        ),
+    }
+
 def _criar_descricao_transicao(
     status_anterior: StatusHomologacao,
     novo_status: StatusHomologacao,
@@ -1075,6 +1141,14 @@ def criar_dados_homologacao(
         responsavel_abertura=responsavel_normalizado,
     )
 
+    operacoes_campo = (
+        criar_dados_operacoes_campo()
+    )
+
+    validar_operacoes_campo(
+        operacoes_campo
+    )
+
     return {
         "codigo": codigo,
         "codigo_empresa": codigo_empresa,
@@ -1093,6 +1167,7 @@ def criar_dados_homologacao(
         "exigencias": [],
         "pendencias": [],
         "prazos": [],
+        "operacoes_campo": operacoes_campo,
         "movimentacoes": [
             movimentacao_inicial
         ],
@@ -3970,6 +4045,464 @@ def adicionar_resposta_exigencia_concessionaria(
 
     homologacao["movimentacoes"].append(
         movimentacao_evento
+    )
+
+    return homologacao
+
+# ============================================================
+# OPERAÇÕES DE CAMPO
+# ============================================================
+
+def registrar_planejamento_instalacao(
+    homologacao: dict,
+    data_prevista: str,
+    responsavel_planejamento: str,
+    equipe_responsavel: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra o planejamento da Instalação.
+
+    A operação:
+
+    1. valida a estrutura da Homologação;
+    2. impede operações em estados terminais;
+    3. exige um estado compatível com a Instalação;
+    4. preserva registros antigos sem operacoes_campo;
+    5. impede um segundo planejamento;
+    6. cria e valida a Instalação candidata;
+    7. prepara a Movimentação;
+    8. aplica todas as alterações de forma atômica;
+    9. atualiza o responsável atual da Homologação.
+
+    Estados compatíveis:
+
+    - PARECER_DE_ACESSO_EMITIDO;
+    - AGUARDANDO_INSTALACAO.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível planejar a Instalação "
+                "de uma Homologação em estado terminal."
+            ),
+        )
+    )
+
+    estados_permitidos = {
+        StatusHomologacao
+        .PARECER_DE_ACESSO_EMITIDO,
+
+        StatusHomologacao
+        .AGUARDANDO_INSTALACAO,
+    }
+
+    if status_atual not in estados_permitidos:
+        raise ValueError(
+            "O planejamento da Instalação somente pode "
+            "ser registrado após a emissão do parecer "
+            "de acesso."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    if (
+        operacoes_candidatas["instalacao"]
+        is not None
+    ):
+        raise ValueError(
+            "A Homologação já possui uma "
+            "Instalação planejada."
+        )
+
+    instalacao_candidata = (
+        criar_dados_planejamento_instalacao(
+            data_prevista=data_prevista,
+            responsavel_planejamento=(
+                responsavel_planejamento
+            ),
+            equipe_responsavel=(
+                equipe_responsavel
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    validar_instalacao(
+        instalacao_candidata
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_planejamento,
+            "Responsável pelo planejamento",
+        )
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .AGUARDANDO_INSTALACAO
+    )
+
+    if (
+        status_atual
+        == StatusHomologacao
+        .PARECER_DE_ACESSO_EMITIDO
+    ):
+        if not transicao_status_homologacao_e_valida(
+            status_atual,
+            novo_status,
+        ):
+            raise ValueError(
+                "A transição para Aguardando Instalação "
+                "não é permitida."
+            )
+
+    operacoes_candidatas[
+        "instalacao"
+    ] = instalacao_candidata
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_instalacao_planejada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            instalacao=instalacao_candidata,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def iniciar_instalacao(
+    homologacao: dict,
+    data_inicio: str,
+    responsavel_inicio: str,
+    data_movimentacao: str,
+) -> dict:
+    """
+    Registra o início da execução da Instalação.
+
+    A operação:
+
+    1. valida a estrutura da Homologação;
+    2. impede operações em estados terminais;
+    3. exige o status AGUARDANDO_INSTALACAO;
+    4. exige uma Instalação planejada;
+    5. prepara uma Instalação candidata;
+    6. valida as Operações de Campo candidatas;
+    7. cria a Movimentação;
+    8. aplica as alterações de forma atômica;
+    9. atualiza o responsável atual.
+
+    O status geral da Homologação permanece
+    AGUARDANDO_INSTALACAO.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível iniciar a Instalação "
+                "de uma Homologação em estado terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .AGUARDANDO_INSTALACAO
+    ):
+        raise ValueError(
+            "A Instalação somente pode ser iniciada "
+            "quando a Homologação estiver aguardando "
+            "a execução da Instalação."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    instalacao_atual = operacoes_candidatas[
+        "instalacao"
+    ]
+
+    if instalacao_atual is None:
+        raise ValueError(
+            "A Homologação não possui uma "
+            "Instalação planejada."
+        )
+
+    instalacao_candidata = (
+        preparar_inicio_instalacao(
+            instalacao=instalacao_atual,
+            data_inicio=data_inicio,
+            responsavel_inicio=(
+                responsavel_inicio
+            ),
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_inicio,
+            "Responsável pelo início",
+        )
+    )
+
+    operacoes_candidatas[
+        "instalacao"
+    ] = instalacao_candidata
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_instalacao_iniciada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            instalacao=instalacao_candidata,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def concluir_instalacao(
+    homologacao: dict,
+    data_conclusao: str,
+    responsavel_conclusao: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra a conclusão da Instalação.
+
+    A operação:
+
+    1. valida a estrutura da Homologação;
+    2. impede operações em estados terminais;
+    3. exige o status AGUARDANDO_INSTALACAO;
+    4. exige uma Instalação em execução;
+    5. prepara a Instalação candidata;
+    6. valida a transição do estado geral;
+    7. prepara a Movimentação;
+    8. aplica as alterações de forma atômica;
+    9. atualiza o responsável atual.
+
+    O status geral será alterado para
+    INSTALACAO_CONCLUIDA.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível concluir a Instalação "
+                "de uma Homologação em estado terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .AGUARDANDO_INSTALACAO
+    ):
+        raise ValueError(
+            "A Instalação somente pode ser concluída "
+            "quando a Homologação estiver aguardando "
+            "a execução da Instalação."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    instalacao_atual = operacoes_candidatas[
+        "instalacao"
+    ]
+
+    if instalacao_atual is None:
+        raise ValueError(
+            "A Homologação não possui uma "
+            "Instalação registrada."
+        )
+
+    instalacao_candidata = (
+        preparar_conclusao_instalacao(
+            instalacao=instalacao_atual,
+            data_conclusao=data_conclusao,
+            responsavel_conclusao=(
+                responsavel_conclusao
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_conclusao,
+            "Responsável pela conclusão",
+        )
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .INSTALACAO_CONCLUIDA
+    )
+
+    if not transicao_status_homologacao_e_valida(
+        status_atual,
+        novo_status,
+    ):
+        raise ValueError(
+            "A transição para Instalação Concluída "
+            "não é permitida."
+        )
+
+    operacoes_candidatas[
+        "instalacao"
+    ] = instalacao_candidata
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_instalacao_concluida(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            instalacao=instalacao_candidata,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
     )
 
     return homologacao

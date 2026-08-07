@@ -640,6 +640,345 @@ class TestHomologacoesFachada(unittest.TestCase):
         )
 
     # ========================================================
+    # OPERAÇÕES DE CAMPO — INSTALAÇÃO
+    # ========================================================
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "planejar_instalacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_planejar_instalacao(
+        self,
+        mock_obter,
+        mock_planejar,
+        mock_salvar,
+    ):
+        """
+        Deve localizar a Homologação, delegar
+        o planejamento ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+            "status": "AGUARDANDO_INSTALACAO",
+            "operacoes_campo": {
+                "instalacao": {
+                    "status": "PLANEJADA",
+                },
+                "vistorias": [],
+                "ligacao": None,
+            },
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_planejar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = homologacoes.planejar_instalacao(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_prevista="2026-08-20",
+            responsavel_planejamento="Ana Lima",
+            equipe_responsavel="Equipe Técnica A",
+            data_movimentacao="2026-08-10",
+            observacoes="Instalação programada.",
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_planejar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            data_prevista="2026-08-20",
+            responsavel_planejamento=(
+                "Ana Lima"
+            ),
+            equipe_responsavel=(
+                "Equipe Técnica A"
+            ),
+            data_movimentacao="2026-08-10",
+            observacoes="Instalação programada.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "planejar_instalacao_no_dominio",
+        side_effect=ValueError(
+            "Estado incompatível."
+        ),
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria",
+        return_value={
+            "codigo": 5,
+        },
+    )
+    def test_falha_no_planejamento_nao_deve_persistir(
+        self,
+        mock_obter,
+        mock_planejar,
+        mock_salvar,
+    ):
+        """
+        Uma falha no domínio deve impedir
+        a chamada da persistência.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Estado incompatível",
+        ):
+            homologacoes.planejar_instalacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_prevista="2026-08-20",
+                responsavel_planejamento=(
+                    "Ana Lima"
+                ),
+                equipe_responsavel=(
+                    "Equipe Técnica A"
+                ),
+                data_movimentacao="2026-08-10",
+            )
+
+        mock_planejar.assert_called_once()
+        mock_salvar.assert_not_called()
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "iniciar_instalacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_iniciar_execucao_instalacao(
+        self,
+        mock_obter,
+        mock_iniciar,
+        mock_salvar,
+    ):
+        """
+        Deve delegar o início da Instalação
+        ao domínio e persistir o resultado.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+            "status": "AGUARDANDO_INSTALACAO",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_iniciar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .iniciar_execucao_instalacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_inicio="2026-08-20",
+                responsavel_inicio=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-20",
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_iniciar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            data_inicio="2026-08-20",
+            responsavel_inicio="Carlos Souza",
+            data_movimentacao="2026-08-20",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "concluir_instalacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_concluir_execucao_instalacao(
+        self,
+        mock_obter,
+        mock_concluir,
+        mock_salvar,
+    ):
+        """
+        Deve delegar a conclusão da Instalação
+        ao domínio e persistir o resultado.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+            "status": "INSTALACAO_CONCLUIDA",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_concluir.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .concluir_execucao_instalacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_conclusao="2026-08-22",
+                responsavel_conclusao=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-22",
+                observacoes=(
+                    "Instalação concluída."
+                ),
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_concluir.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            data_conclusao="2026-08-22",
+            responsavel_conclusao=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-08-22",
+            observacoes=(
+                "Instalação concluída."
+            ),
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "planejar_instalacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria",
+        side_effect=ValueError(
+            "Homologação não encontrada."
+        ),
+    )
+    def test_planejamento_exige_homologacao_existente(
+        self,
+        mock_obter,
+        mock_planejar,
+        mock_salvar,
+    ):
+        """
+        Uma Homologação inexistente deve encerrar
+        a operação antes de acessar o domínio.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não encontrada",
+        ):
+            homologacoes.planejar_instalacao(
+                codigo_homologacao=999,
+                codigo_empresa=10,
+                data_prevista="2026-08-20",
+                responsavel_planejamento=(
+                    "Ana Lima"
+                ),
+                equipe_responsavel=(
+                    "Equipe Técnica A"
+                ),
+                data_movimentacao="2026-08-10",
+            )
+
+        mock_planejar.assert_not_called()
+        mock_salvar.assert_not_called()
+
+    # ========================================================
     # DEPENDÊNCIAS EXTERNAS
     # ========================================================
 

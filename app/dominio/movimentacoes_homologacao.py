@@ -129,6 +129,116 @@ def criar_movimentacao_de_status(
         "motivo": motivo,
     }
 
+def criar_movimentacao_instalacao_planejada(
+    movimentacoes: list[dict],
+    instalacao: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    ao planejamento da Instalação.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "INSTALACAO_PLANEJADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Instalação planejada para "
+            f"{instalacao['data_prevista']}."
+        ),
+        "motivo": None,
+        "data_prevista_instalacao": (
+            instalacao["data_prevista"]
+        ),
+        "equipe_responsavel": (
+            instalacao["equipe_responsavel"]
+        ),
+    }
+
+def criar_movimentacao_instalacao_iniciada(
+    movimentacoes: list[dict],
+    instalacao: dict,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    ao início da execução da Instalação.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "INSTALACAO_INICIADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": None,
+        "novo_status": None,
+        "descricao": (
+            "Execução da Instalação iniciada em "
+            f"{instalacao['data_inicio']}."
+        ),
+        "motivo": None,
+        "status_instalacao": (
+            instalacao["status"]
+        ),
+        "data_inicio_instalacao": (
+            instalacao["data_inicio"]
+        ),
+        "equipe_responsavel": (
+            instalacao["equipe_responsavel"]
+        ),
+    }
+
+def criar_movimentacao_instalacao_concluida(
+    movimentacoes: list[dict],
+    instalacao: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    à conclusão da Instalação.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "INSTALACAO_CONCLUIDA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Instalação concluída em "
+            f"{instalacao['data_conclusao']}."
+        ),
+        "motivo": None,
+        "status_instalacao": instalacao["status"],
+        "data_inicio_instalacao": (
+            instalacao["data_inicio"]
+        ),
+        "data_conclusao_instalacao": (
+            instalacao["data_conclusao"]
+        ),
+        "equipe_responsavel": (
+            instalacao["equipe_responsavel"]
+        ),
+    }
+
 def criar_movimentacao_documento_adicionado(
     movimentacoes: list[dict],
     documento: dict,

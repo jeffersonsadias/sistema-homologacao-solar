@@ -280,6 +280,368 @@ class TestHomologacoesInterface(
 
     @patch(
         "app.interface.homologacoes_interface."
+        "_exibir_instalacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.planejar_instalacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-20",
+            "Ana Lima",
+            "Equipe Técnica A",
+            "2026-08-10",
+            "Instalação programada.",
+        ],
+    )
+    def test_planejar_instalacao_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_planejar,
+        mock_exibir,
+    ):
+        """
+        Deve coletar os dados, chamar a fachada
+        e exibir a Instalação planejada.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_planejar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .planejar_instalacao_interface()
+        )
+
+        mock_planejar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_prevista="2026-08-20",
+            responsavel_planejamento="Ana Lima",
+            equipe_responsavel="Equipe Técnica A",
+            data_movimentacao="2026-08-10",
+            observacoes="Instalação programada.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_instalacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.planejar_instalacao",
+        side_effect=ValueError(
+            "Estado incompatível."
+        ),
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-20",
+            "Ana Lima",
+            "Equipe Técnica A",
+            "2026-08-10",
+            "",
+        ],
+    )
+    def test_planejamento_invalido_exibe_erro(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_planejar,
+        mock_exibir,
+        mock_print,
+    ):
+        """
+        Uma falha da fachada deve ser apresentada
+        sem exibir uma Instalação.
+        """
+
+        (
+            homologacoes_interface
+            .planejar_instalacao_interface()
+        )
+
+        mock_exibir.assert_not_called()
+
+        mock_print.assert_any_call(
+            "\nNão foi possível planejar "
+            "a Instalação: Estado incompatível."
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_instalacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.iniciar_execucao_instalacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-20",
+            "Carlos Souza",
+            "2026-08-20",
+        ],
+    )
+    def test_iniciar_instalacao_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_iniciar,
+        mock_exibir,
+    ):
+        """
+        Deve registrar o início da Instalação
+        por meio da fachada.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_iniciar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .iniciar_instalacao_interface()
+        )
+
+        mock_iniciar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_inicio="2026-08-20",
+            responsavel_inicio="Carlos Souza",
+            data_movimentacao="2026-08-20",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_instalacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.concluir_execucao_instalacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-22",
+            "Carlos Souza",
+            "2026-08-22",
+            "Instalação concluída.",
+        ],
+    )
+    def test_concluir_instalacao_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_concluir,
+        mock_exibir,
+    ):
+        """
+        Deve registrar a conclusão da Instalação
+        por meio da fachada.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_concluir.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .concluir_instalacao_interface()
+        )
+
+        mock_concluir.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_conclusao="2026-08-22",
+            responsavel_conclusao="Carlos Souza",
+            data_movimentacao="2026-08-22",
+            observacoes="Instalação concluída.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "planejar_instalacao_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "1",
+            "0",
+        ],
+    )
+    def test_menu_instalacao_deve_abrir_planejamento(
+        self,
+        mock_input,
+        mock_planejar,
+        mock_pausar,
+    ):
+        """
+        A opção 1 deve abrir
+        o planejamento da Instalação.
+        """
+
+        homologacoes_interface.menu_instalacao()
+
+        mock_planejar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "iniciar_instalacao_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2",
+            "0",
+        ],
+    )
+    def test_menu_instalacao_deve_abrir_inicio(
+        self,
+        mock_input,
+        mock_iniciar,
+        mock_pausar,
+    ):
+        """
+        A opção 2 deve abrir
+        o início da Instalação.
+        """
+
+        homologacoes_interface.menu_instalacao()
+
+        mock_iniciar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "concluir_instalacao_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "3",
+            "0",
+        ],
+    )
+    def test_menu_instalacao_deve_abrir_conclusao(
+        self,
+        mock_input,
+        mock_concluir,
+        mock_pausar,
+    ):
+        """
+        A opção 3 deve abrir
+        a conclusão da Instalação.
+        """
+
+        homologacoes_interface.menu_instalacao()
+
+        mock_concluir.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "builtins.input",
+        return_value="0",
+    )
+    def test_menu_homologacoes_deve_exibir_gestao_instalacao(
+        self,
+        mock_input,
+        mock_print,
+    ):
+        """
+        O menu de Homologações deve apresentar
+        corretamente a opção de Gestão da Instalação.
+        """
+
+        homologacoes_interface.menu_homologacoes()
+
+        mock_print.assert_any_call(
+            "4 - Gerenciar Instalação"
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
         "cadastrar_homologacao_interface"
     )
     @patch(
@@ -354,6 +716,30 @@ class TestHomologacoesInterface(
 
         mock_buscar.assert_called_once_with()
 
+    @patch(
+        "app.interface.homologacoes_interface."
+        "menu_instalacao"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "4",
+            "0",
+        ],
+    )
+    def test_menu_deve_abrir_gestao_instalacao(
+        self,
+        mock_input,
+        mock_menu_instalacao,
+    ):
+        """
+        A opção 4 deve abrir o submenu
+        de Gestão da Instalação.
+        """
+
+        homologacoes_interface.menu_homologacoes()
+
+        mock_menu_instalacao.assert_called_once_with()
 
 if __name__ == "__main__":
     unittest.main()

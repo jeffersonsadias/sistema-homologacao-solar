@@ -31,7 +31,9 @@ from app.dominio.homologacoes import (
     buscar_homologacao_por_codigo,
     buscar_homologacoes_por_concessionaria,
     buscar_homologacoes_por_status,
+    concluir_instalacao,
     criar_dados_homologacao,
+    iniciar_instalacao,
     projeto_possui_homologacao_ativa,
     quantidade_homologacoes_aguardando_envio,
     quantidade_homologacoes_aguardando_resposta,
@@ -39,6 +41,7 @@ from app.dominio.homologacoes import (
     quantidade_homologacoes_por_status,
     quantidade_homologacoes_sem_responsavel,
     quantidade_total_pendencias_homologacao,
+    registrar_planejamento_instalacao,
 )
 
 from app.dominio.status_homologacao import (
@@ -67,6 +70,18 @@ buscar_por_concessionaria_no_dominio = (
 
 buscar_por_status_no_dominio = (
     buscar_homologacoes_por_status
+)
+
+planejar_instalacao_no_dominio = (
+    registrar_planejamento_instalacao
+)
+
+iniciar_instalacao_no_dominio = (
+    iniciar_instalacao
+)
+
+concluir_instalacao_no_dominio = (
+    concluir_instalacao
 )
 
 # ============================================================
@@ -415,3 +430,123 @@ def criar_homologacao(
     _salvar_alteracoes()
 
     return nova_homologacao
+
+# ============================================================
+# OPERAÇÕES DE CAMPO — INSTALAÇÃO
+# ============================================================
+
+def planejar_instalacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    data_prevista: str,
+    responsavel_planejamento: str,
+    equipe_responsavel: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Registra e persiste o planejamento
+    da Instalação de uma Homologação.
+
+    A busca aplica o isolamento por Empresa.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        planejar_instalacao_no_dominio(
+            homologacao=homologacao,
+            data_prevista=data_prevista,
+            responsavel_planejamento=(
+                responsavel_planejamento
+            ),
+            equipe_responsavel=(
+                equipe_responsavel
+            ),
+            data_movimentacao=(
+                data_movimentacao
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def iniciar_execucao_instalacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    data_inicio: str,
+    responsavel_inicio: str,
+    data_movimentacao: str,
+) -> dict[str, Any]:
+    """
+    Registra e persiste o início
+    da execução da Instalação.
+
+    A busca aplica o isolamento por Empresa.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        iniciar_instalacao_no_dominio(
+            homologacao=homologacao,
+            data_inicio=data_inicio,
+            responsavel_inicio=(
+                responsavel_inicio
+            ),
+            data_movimentacao=(
+                data_movimentacao
+            ),
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def concluir_execucao_instalacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    data_conclusao: str,
+    responsavel_conclusao: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Registra e persiste a conclusão
+    da Instalação.
+
+    A busca aplica o isolamento por Empresa.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        concluir_instalacao_no_dominio(
+            homologacao=homologacao,
+            data_conclusao=data_conclusao,
+            responsavel_conclusao=(
+                responsavel_conclusao
+            ),
+            data_movimentacao=(
+                data_movimentacao
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada

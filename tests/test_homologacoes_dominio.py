@@ -16,12 +16,14 @@ from app.dominio.homologacoes import (
     buscar_submissao_por_codigo,
     buscar_submissao_por_numero_sequencial,
     codigo_homologacao_existe,
+    concluir_instalacao,
     criar_dados_homologacao,
     enviar_submissao_homologacao,
     homologacao_esta_sem_responsavel,
     homologacao_possui_exigencia_aberta,
     homologacao_possui_submissao_aguardando_envio,
     homologacao_possui_submissao_aguardando_resposta,
+    iniciar_instalacao,
     projeto_possui_homologacao_ativa,
     protocolar_submissao_homologacao,
     quantidade_homologacoes_aguardando_envio,
@@ -30,6 +32,7 @@ from app.dominio.homologacoes import (
     quantidade_homologacoes_por_status,
     quantidade_homologacoes_sem_responsavel,
     quantidade_total_pendencias_homologacao,
+    registrar_planejamento_instalacao,
 )
 
 from app.dominio.documentos_homologacao import (
@@ -437,6 +440,25 @@ class TestHomologacoesDominio(unittest.TestCase):
                 self.homologacao_ativa[campo],
                 [],
             )
+
+    def test_criar_homologacao_deve_iniciar_operacoes_campo(
+        self,
+    ):
+        """
+        Toda nova Homologação deve possuir
+        a estrutura inicial das Operações de Campo.
+        """
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ],
+            {
+                "instalacao": None,
+                "vistorias": [],
+                "ligacao": None,
+            },
+        )
 
     def test_criar_homologacao_deve_registrar_movimentacao_inicial(
         self
@@ -6194,6 +6216,647 @@ class TestHomologacoesDominio(unittest.TestCase):
         self.assertEqual(
             codigos_movimentacoes,
             codigos_esperados,
+        )
+
+    # ========================================================
+    # OPERAÇÕES DE CAMPO — INSTALAÇÃO
+    # ========================================================
+
+    def _planejar_instalacao_valida(
+        self,
+    ):
+        """
+        Coloca a Homologação no estado correto
+        e registra um planejamento válido.
+        """
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .PARECER_DE_ACESSO_EMITIDO
+            .value
+        )
+
+        registrar_planejamento_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_prevista="2026-08-20",
+            responsavel_planejamento="Ana Lima",
+            equipe_responsavel="Equipe Técnica A",
+            data_movimentacao="2026-08-10",
+        )
+
+    def test_iniciar_instalacao(
+        self,
+    ):
+        """
+        Deve registrar o início da Instalação
+        e preservar o status geral da Homologação.
+        """
+
+        self._planejar_instalacao_valida()
+
+        resultado = iniciar_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_inicio="2026-08-20",
+            responsavel_inicio="Carlos Souza",
+            data_movimentacao="2026-08-20",
+        )
+
+        instalacao = resultado[
+            "operacoes_campo"
+        ]["instalacao"]
+
+        self.assertEqual(
+            instalacao["status"],
+            "EM_EXECUCAO",
+        )
+
+        self.assertEqual(
+            instalacao["data_inicio"],
+            "2026-08-20",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .AGUARDANDO_INSTALACAO
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["responsavel_atual"],
+            "Carlos Souza",
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "INSTALACAO_INICIADA",
+        )
+
+    def test_nao_deve_iniciar_sem_planejamento(
+        self,
+    ):
+        """
+        Não deve ser possível iniciar uma Instalação
+        que ainda não foi planejada.
+        """
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .AGUARDANDO_INSTALACAO
+            .value
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não possui",
+        ):
+            iniciar_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_inicio="2026-08-20",
+                responsavel_inicio=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-20",
+            )
+
+    def test_nao_deve_iniciar_instalacao_duas_vezes(
+        self,
+    ):
+        """
+        Uma Instalação em execução não pode
+        ser iniciada novamente.
+        """
+
+        self._planejar_instalacao_valida()
+
+        iniciar_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_inicio="2026-08-20",
+            responsavel_inicio="Carlos Souza",
+            data_movimentacao="2026-08-20",
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "planejada",
+        ):
+            iniciar_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_inicio="2026-08-21",
+                responsavel_inicio=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-21",
+            )
+
+    def test_inicio_exige_status_aguardando_instalacao(
+        self,
+    ):
+        """
+        A operação deve exigir o status geral correto.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "aguardando",
+        ):
+            iniciar_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_inicio="2026-08-20",
+                responsavel_inicio=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-20",
+            )
+
+    def test_falha_no_inicio_nao_deve_alterar_instalacao(
+        self,
+    ):
+        """
+        Uma falha deve preservar integralmente
+        a Homologação e a Instalação reais.
+        """
+
+        self._planejar_instalacao_valida()
+
+        instalacao_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["instalacao"].copy()
+        )
+
+        responsavel_antes = (
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            iniciar_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_inicio="20/08/2026",
+                responsavel_inicio=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-20",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["instalacao"],
+            instalacao_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ],
+            responsavel_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def _iniciar_instalacao_valida(
+        self,
+    ):
+        """
+        Planeja e inicia uma Instalação válida.
+        """
+
+        self._planejar_instalacao_valida()
+
+        iniciar_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_inicio="2026-08-20",
+            responsavel_inicio="Carlos Souza",
+            data_movimentacao="2026-08-20",
+        )
+
+    def test_concluir_instalacao(
+        self,
+    ):
+        """
+        Deve concluir a Instalação e avançar
+        o status geral da Homologação.
+        """
+
+        self._iniciar_instalacao_valida()
+
+        resultado = concluir_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_conclusao="2026-08-22",
+            responsavel_conclusao="Carlos Souza",
+            data_movimentacao="2026-08-22",
+            observacoes=(
+                "Instalação concluída sem ocorrências."
+            ),
+        )
+
+        instalacao = resultado[
+            "operacoes_campo"
+        ]["instalacao"]
+
+        self.assertEqual(
+            instalacao["status"],
+            "CONCLUIDA",
+        )
+
+        self.assertEqual(
+            instalacao["data_conclusao"],
+            "2026-08-22",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .INSTALACAO_CONCLUIDA
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["responsavel_atual"],
+            "Carlos Souza",
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "INSTALACAO_CONCLUIDA",
+        )
+
+    def test_nao_deve_concluir_sem_inicio(
+        self,
+    ):
+        """
+        Uma Instalação planejada, mas não iniciada,
+        não pode ser concluída.
+        """
+
+        self._planejar_instalacao_valida()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "em execução",
+        ):
+            concluir_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_conclusao="2026-08-22",
+                responsavel_conclusao=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-22",
+            )
+
+    def test_nao_deve_concluir_instalacao_duas_vezes(
+        self,
+    ):
+        """
+        Uma Instalação concluída não pode
+        ser concluída novamente.
+        """
+
+        self._iniciar_instalacao_valida()
+
+        concluir_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_conclusao="2026-08-22",
+            responsavel_conclusao="Carlos Souza",
+            data_movimentacao="2026-08-22",
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            concluir_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_conclusao="2026-08-23",
+                responsavel_conclusao=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-23",
+            )
+
+    def test_falha_na_conclusao_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma falha deve preservar os dados reais
+        da Instalação e da Homologação.
+        """
+
+        self._iniciar_instalacao_valida()
+
+        instalacao_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["instalacao"].copy()
+        )
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            concluir_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_conclusao="19/08/2026",
+                responsavel_conclusao=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-22",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["instalacao"],
+            instalacao_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def test_registrar_planejamento_instalacao(
+        self,
+    ):
+        """
+        Deve registrar a Instalação, avançar o estado
+        e criar a Movimentação correspondente.
+        """
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .PARECER_DE_ACESSO_EMITIDO
+            .value
+        )
+
+        resultado = registrar_planejamento_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_prevista="2026-08-20",
+            responsavel_planejamento="Ana Lima",
+            equipe_responsavel="Equipe Técnica A",
+            data_movimentacao="2026-08-10",
+            observacoes="Instalação programada.",
+        )
+
+        self.assertIs(
+            resultado,
+            self.homologacao_ativa,
+        )
+
+        instalacao = resultado[
+            "operacoes_campo"
+        ]["instalacao"]
+
+        self.assertEqual(
+            instalacao["status"],
+            "PLANEJADA",
+        )
+
+        self.assertEqual(
+            instalacao["data_prevista"],
+            "2026-08-20",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .AGUARDANDO_INSTALACAO
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["responsavel_atual"],
+            "Ana Lima",
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "INSTALACAO_PLANEJADA",
+        )
+
+    def test_nao_deve_registrar_dois_planejamentos(
+        self,
+    ):
+        """
+        Uma Homologação não pode possuir
+        duas Instalações principais.
+        """
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .PARECER_DE_ACESSO_EMITIDO
+            .value
+        )
+
+        registrar_planejamento_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_prevista="2026-08-20",
+            responsavel_planejamento="Ana Lima",
+            equipe_responsavel="Equipe Técnica A",
+            data_movimentacao="2026-08-10",
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "já possui",
+        ):
+            registrar_planejamento_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_prevista="2026-08-25",
+                responsavel_planejamento=(
+                    "Carlos Souza"
+                ),
+                equipe_responsavel=(
+                    "Equipe Técnica B"
+                ),
+                data_movimentacao="2026-08-11",
+            )
+
+    def test_planejamento_exige_estado_compativel(
+        self,
+    ):
+        """
+        A Instalação não pode ser planejada antes
+        da emissão do parecer de acesso.
+        """
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            StatusHomologacao
+            .EM_PREPARACAO
+            .value,
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "após a emissão",
+        ):
+            registrar_planejamento_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_prevista="2026-08-20",
+                responsavel_planejamento=(
+                    "Ana Lima"
+                ),
+                equipe_responsavel=(
+                    "Equipe Técnica A"
+                ),
+                data_movimentacao="2026-08-10",
+            )
+
+    def test_planejamento_deve_normalizar_registro_antigo(
+        self,
+    ):
+        """
+        Uma Homologação antiga sem operacoes_campo
+        deve receber a nova estrutura somente após
+        a validação completa da operação.
+        """
+
+        self.homologacao_ativa.pop(
+            "operacoes_campo",
+            None,
+        )
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .AGUARDANDO_INSTALACAO
+            .value
+        )
+
+        registrar_planejamento_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_prevista="2026-08-20",
+            responsavel_planejamento="Ana Lima",
+            equipe_responsavel="Equipe Técnica A",
+            data_movimentacao="2026-08-10",
+        )
+
+        self.assertIn(
+            "operacoes_campo",
+            self.homologacao_ativa,
+        )
+
+        self.assertIsNotNone(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["instalacao"]
+        )
+
+    def test_falha_no_planejamento_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma falha de validação não deve aplicar
+        alterações parciais à Homologação.
+        """
+
+        self.homologacao_ativa.pop(
+            "operacoes_campo",
+            None,
+        )
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .PARECER_DE_ACESSO_EMITIDO
+            .value
+        )
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        responsavel_antes = (
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            registrar_planejamento_instalacao(
+                homologacao=self.homologacao_ativa,
+                data_prevista="20/08/2026",
+                responsavel_planejamento=(
+                    "Ana Lima"
+                ),
+                equipe_responsavel=(
+                    "Equipe Técnica A"
+                ),
+                data_movimentacao="2026-08-10",
+            )
+
+        self.assertNotIn(
+            "operacoes_campo",
+            self.homologacao_ativa,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ],
+            responsavel_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
         )
 
 if __name__ == "__main__":

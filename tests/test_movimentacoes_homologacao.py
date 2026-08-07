@@ -13,6 +13,9 @@ from app.dominio.movimentacoes_homologacao import (
     criar_movimentacao_de_abertura,
     criar_movimentacao_de_status,
     criar_movimentacao_documento_adicionado,
+    criar_movimentacao_instalacao_concluida,
+    criar_movimentacao_instalacao_iniciada,
+    criar_movimentacao_instalacao_planejada,
     criar_movimentacao_resposta_concessionaria,
     criar_movimentacao_resposta_exigencia,
     criar_movimentacao_status_documento,
@@ -118,6 +121,213 @@ class TestMovimentacoesHomologacao(unittest.TestCase):
             "AGUARDANDO_DOCUMENTACAO",
         )
 
+
+class TestMovimentacoesInstalacao(
+    unittest.TestCase
+):
+    """
+    Testes das Movimentações relacionadas
+    à Instalação.
+    """
+
+    def test_deve_criar_movimentacao_de_planejamento(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        do planejamento da Instalação.
+        """
+
+        instalacao = {
+            "data_prevista": "2026-08-20",
+            "equipe_responsavel": (
+                "Equipe Técnica A"
+            ),
+        }
+
+        movimentacao = (
+            criar_movimentacao_instalacao_planejada(
+                movimentacoes=[
+                    {
+                        "codigo": 1,
+                    }
+                ],
+                instalacao=instalacao,
+                status_anterior=(
+                    StatusHomologacao
+                    .PARECER_DE_ACESSO_EMITIDO
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .AGUARDANDO_INSTALACAO
+                ),
+                data_movimentacao="2026-08-10",
+                responsavel="Ana Lima",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            2,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "INSTALACAO_PLANEJADA",
+        )
+
+        self.assertEqual(
+            movimentacao["status_anterior"],
+            "PARECER_DE_ACESSO_EMITIDO",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "AGUARDANDO_INSTALACAO",
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "data_prevista_instalacao"
+            ],
+            "2026-08-20",
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "equipe_responsavel"
+            ],
+            "Equipe Técnica A",
+        )
+
+    def test_deve_criar_movimentacao_de_inicio(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        do início da Instalação.
+        """
+
+        instalacao = {
+            "status": "EM_EXECUCAO",
+            "data_inicio": "2026-08-20",
+            "equipe_responsavel": (
+                "Equipe Técnica A"
+            ),
+        }
+
+        movimentacao = (
+            criar_movimentacao_instalacao_iniciada(
+                movimentacoes=[
+                    {
+                        "codigo": 2,
+                    }
+                ],
+                instalacao=instalacao,
+                data_movimentacao="2026-08-20",
+                responsavel="Carlos Souza",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            3,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "INSTALACAO_INICIADA",
+        )
+
+        self.assertIsNone(
+            movimentacao["status_anterior"]
+        )
+
+        self.assertIsNone(
+            movimentacao["novo_status"]
+        )
+
+        self.assertEqual(
+            movimentacao["status_instalacao"],
+            "EM_EXECUCAO",
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "data_inicio_instalacao"
+            ],
+            "2026-08-20",
+        )
+
+    def test_deve_criar_movimentacao_de_conclusao(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        da conclusão da Instalação.
+        """
+
+        instalacao = {
+            "status": "CONCLUIDA",
+            "data_inicio": "2026-08-20",
+            "data_conclusao": "2026-08-22",
+            "equipe_responsavel": (
+                "Equipe Técnica A"
+            ),
+        }
+
+        movimentacao = (
+            criar_movimentacao_instalacao_concluida(
+                movimentacoes=[
+                    {
+                        "codigo": 3,
+                    }
+                ],
+                instalacao=instalacao,
+                status_anterior=(
+                    StatusHomologacao
+                    .AGUARDANDO_INSTALACAO
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .INSTALACAO_CONCLUIDA
+                ),
+                data_movimentacao="2026-08-22",
+                responsavel="Carlos Souza",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            4,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "INSTALACAO_CONCLUIDA",
+        )
+
+        self.assertEqual(
+            movimentacao["status_anterior"],
+            "AGUARDANDO_INSTALACAO",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "INSTALACAO_CONCLUIDA",
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "data_conclusao_instalacao"
+            ],
+            "2026-08-22",
+        )
+
+        self.assertEqual(
+            movimentacao["status_instalacao"],
+            "CONCLUIDA",
+        )
 
 class TestMovimentacoesDocumento(unittest.TestCase):
 

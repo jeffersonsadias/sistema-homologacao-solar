@@ -123,6 +123,81 @@ def _exibir_homologacao(
 
     print("-" * 60)
 
+def _exibir_instalacao(
+    homologacao: dict[str, Any],
+) -> None:
+    """
+    Exibe os dados da Instalação registrada
+    nas Operações de Campo da Homologação.
+    """
+
+    operacoes_campo = homologacao.get(
+        "operacoes_campo"
+    ) or {}
+
+    instalacao = operacoes_campo.get(
+        "instalacao"
+    )
+
+    if instalacao is None:
+        print(
+            "\nNenhuma Instalação registrada."
+        )
+
+        return
+
+    print()
+    print("-" * 60)
+    print("DADOS DA INSTALAÇÃO")
+    print("-" * 60)
+
+    print(
+        f"Status:                     "
+        f"{instalacao.get('status', '-')}"
+    )
+
+    print(
+        f"Data prevista:              "
+        f"{instalacao.get('data_prevista', '-')}"
+    )
+
+    print(
+        f"Equipe responsável:         "
+        f"{instalacao.get('equipe_responsavel', '-')}"
+    )
+
+    print(
+        f"Responsável planejamento:   "
+        f"{instalacao.get('responsavel_planejamento', '-')}"
+    )
+
+    print(
+        f"Data de início:             "
+        f"{instalacao.get('data_inicio') or '-'}"
+    )
+
+    print(
+        f"Responsável pelo início:    "
+        f"{instalacao.get('responsavel_inicio') or '-'}"
+    )
+
+    print(
+        f"Data de conclusão:          "
+        f"{instalacao.get('data_conclusao') or '-'}"
+    )
+
+    print(
+        f"Responsável pela conclusão: "
+        f"{instalacao.get('responsavel_conclusao') or '-'}"
+    )
+
+    print(
+        f"Observações:                "
+        f"{instalacao.get('observacoes') or 'Nenhuma'}"
+    )
+
+    print("-" * 60)
+
 # ============================================================
 # CADASTRO
 # ============================================================
@@ -280,6 +355,271 @@ def buscar_homologacao_interface() -> None:
     )
 
 # ============================================================
+# OPERAÇÕES DE CAMPO — INSTALAÇÃO
+# ============================================================
+
+def planejar_instalacao_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    o planejamento da Instalação.
+    """
+
+    _exibir_titulo(
+        "PLANEJAMENTO DA INSTALAÇÃO"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    data_prevista = input(
+        "Data prevista da Instalação "
+        "(AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_planejamento = input(
+        "Responsável pelo planejamento: "
+    ).strip()
+
+    equipe_responsavel = input(
+        "Equipe responsável: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes.planejar_instalacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                data_prevista=data_prevista,
+                responsavel_planejamento=(
+                    responsavel_planejamento
+                ),
+                equipe_responsavel=(
+                    equipe_responsavel
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível planejar "
+            f"a Instalação: {erro}"
+        )
+
+        return
+
+    print(
+        "\nInstalação planejada com sucesso."
+    )
+
+    _exibir_instalacao(
+        homologacao_atualizada
+    )
+
+def iniciar_instalacao_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    o início da execução da Instalação.
+    """
+
+    _exibir_titulo(
+        "INÍCIO DA INSTALAÇÃO"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    data_inicio = input(
+        "Data de início (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_inicio = input(
+        "Responsável pelo início: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .iniciar_execucao_instalacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                data_inicio=data_inicio,
+                responsavel_inicio=(
+                    responsavel_inicio
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível iniciar "
+            f"a Instalação: {erro}"
+        )
+
+        return
+
+    print(
+        "\nInstalação iniciada com sucesso."
+    )
+
+    _exibir_instalacao(
+        homologacao_atualizada
+    )
+
+def concluir_instalacao_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    a conclusão da Instalação.
+    """
+
+    _exibir_titulo(
+        "CONCLUSÃO DA INSTALAÇÃO"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    data_conclusao = input(
+        "Data de conclusão (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_conclusao = input(
+        "Responsável pela conclusão: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações finais, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .concluir_execucao_instalacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                data_conclusao=data_conclusao,
+                responsavel_conclusao=(
+                    responsavel_conclusao
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível concluir "
+            f"a Instalação: {erro}"
+        )
+
+        return
+
+    print(
+        "\nInstalação concluída com sucesso."
+    )
+
+    _exibir_instalacao(
+        homologacao_atualizada
+    )
+
+def menu_instalacao() -> None:
+    """
+    Exibe o submenu operacional da Instalação.
+    """
+
+    while True:
+        _exibir_titulo(
+            "GESTÃO DA INSTALAÇÃO"
+        )
+
+        print(
+            "1 - Planejar Instalação"
+        )
+
+        print(
+            "2 - Iniciar execução"
+        )
+
+        print(
+            "3 - Concluir Instalação"
+        )
+
+        print(
+            "0 - Voltar"
+        )
+
+        opcao = input(
+            "\nEscolha uma opção: "
+        ).strip()
+
+        if opcao == "1":
+            planejar_instalacao_interface()
+            _pausar()
+
+        elif opcao == "2":
+            iniciar_instalacao_interface()
+            _pausar()
+
+        elif opcao == "3":
+            concluir_instalacao_interface()
+            _pausar()
+
+        elif opcao == "0":
+            return
+
+        else:
+            print(
+                "\nOpção inválida."
+            )
+
+            _pausar()
+
+# ============================================================
 # MENU DE HOMOLOGAÇÕES
 # ============================================================
 
@@ -308,6 +648,10 @@ def menu_homologacoes() -> None:
         )
 
         print(
+            "4 - Gerenciar Instalação"
+        )
+
+        print(
             "0 - Voltar"
         )
 
@@ -326,6 +670,9 @@ def menu_homologacoes() -> None:
         elif opcao == "3":
             buscar_homologacao_interface()
             _pausar()
+
+        elif opcao == "4":
+            menu_instalacao()
 
         elif opcao == "0":
             return
