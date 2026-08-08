@@ -23,6 +23,12 @@ from app.dominio.movimentacoes_homologacao import (
     criar_movimentacao_submissao_adicionada,
     criar_movimentacao_submissao_enviada,
     criar_movimentacao_submissao_protocolada,
+    criar_movimentacao_vistoria_agendada,
+    criar_movimentacao_vistoria_solicitada,
+    criar_movimentacao_vistoria_realizada,
+    criar_movimentacao_vistoria_aprovada,
+    criar_movimentacao_vistoria_reprovada,
+    criar_movimentacao_correcao_pos_vistoria,
     gerar_proximo_codigo_movimentacao,
 )
 
@@ -327,6 +333,412 @@ class TestMovimentacoesInstalacao(
         self.assertEqual(
             movimentacao["status_instalacao"],
             "CONCLUIDA",
+        )
+
+class TestMovimentacoesVistoria(
+    unittest.TestCase
+):
+    """
+    Testes das Movimentações relacionadas
+    às Vistorias.
+    """
+
+    def test_deve_criar_movimentacao_de_solicitacao(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        da solicitação da Vistoria.
+        """
+
+        vistoria = {
+            "codigo": 1,
+            "numero_sequencial": 1,
+            "protocolo": "VST-2026-001",
+            "data_solicitacao": "2026-08-25",
+        }
+
+        movimentacao = (
+            criar_movimentacao_vistoria_solicitada(
+                movimentacoes=[
+                    {
+                        "codigo": 4,
+                    }
+                ],
+                vistoria=vistoria,
+                status_anterior=(
+                    StatusHomologacao
+                    .INSTALACAO_CONCLUIDA
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .VISTORIA_SOLICITADA
+                ),
+                data_movimentacao="2026-08-25",
+                responsavel="Ana Lima",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            5,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "VISTORIA_SOLICITADA",
+        )
+
+        self.assertEqual(
+            movimentacao["status_anterior"],
+            "INSTALACAO_CONCLUIDA",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "VISTORIA_SOLICITADA",
+        )
+
+        self.assertEqual(
+            movimentacao["codigo_vistoria"],
+            1,
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "numero_sequencial_vistoria"
+            ],
+            1,
+        )
+
+        self.assertEqual(
+            movimentacao["protocolo_vistoria"],
+            "VST-2026-001",
+        )
+
+    def test_deve_criar_movimentacao_de_agendamento(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        do agendamento da Vistoria.
+        """
+
+        vistoria = {
+            "codigo": 1,
+            "numero_sequencial": 1,
+            "protocolo": "VST-2026-001",
+            "data_agendamento": "2026-08-30",
+        }
+
+        movimentacao = (
+            criar_movimentacao_vistoria_agendada(
+                movimentacoes=[
+                    {
+                        "codigo": 5,
+                    }
+                ],
+                vistoria=vistoria,
+                status_anterior=(
+                    StatusHomologacao
+                    .VISTORIA_SOLICITADA
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .AGUARDANDO_VISTORIA
+                ),
+                data_movimentacao="2026-08-26",
+                responsavel="Carlos Souza",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            6,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "VISTORIA_AGENDADA",
+        )
+
+        self.assertEqual(
+            movimentacao["status_anterior"],
+            "VISTORIA_SOLICITADA",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "AGUARDANDO_VISTORIA",
+        )
+
+        self.assertEqual(
+            movimentacao["codigo_vistoria"],
+            1,
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "data_agendamento_vistoria"
+            ],
+            "2026-08-30",
+        )
+
+    def test_deve_criar_movimentacao_de_realizacao(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        da realização da Vistoria.
+        """
+
+        vistoria = {
+            "codigo": 1,
+            "numero_sequencial": 1,
+            "protocolo": "VST-2026-001",
+            "status": "REALIZADA",
+            "data_realizacao": "2026-08-30",
+        }
+
+        movimentacao = (
+            criar_movimentacao_vistoria_realizada(
+                movimentacoes=[
+                    {
+                        "codigo": 6,
+                    }
+                ],
+                vistoria=vistoria,
+                data_movimentacao="2026-08-30",
+                responsavel="Marcos Oliveira",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            7,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "VISTORIA_REALIZADA",
+        )
+
+        self.assertIsNone(
+            movimentacao["status_anterior"]
+        )
+
+        self.assertIsNone(
+            movimentacao["novo_status"]
+        )
+
+        self.assertEqual(
+            movimentacao["codigo_vistoria"],
+            1,
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "data_realizacao_vistoria"
+            ],
+            "2026-08-30",
+        )
+
+        self.assertEqual(
+            movimentacao["status_vistoria"],
+            "REALIZADA",
+        )
+
+    def test_deve_criar_movimentacao_de_aprovacao(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        da aprovação da Vistoria.
+        """
+
+        vistoria = {
+            "codigo": 1,
+            "numero_sequencial": 1,
+            "protocolo": "VST-2026-001",
+            "data_resultado": "2026-09-01",
+            "resultado": "APROVADA",
+        }
+
+        movimentacao = (
+            criar_movimentacao_vistoria_aprovada(
+                movimentacoes=[
+                    {
+                        "codigo": 7,
+                    }
+                ],
+                vistoria=vistoria,
+                status_anterior=(
+                    StatusHomologacao
+                    .AGUARDANDO_VISTORIA
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .VISTORIA_APROVADA
+                ),
+                data_movimentacao="2026-09-01",
+                responsavel="Ana Lima",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            8,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "VISTORIA_APROVADA",
+        )
+
+        self.assertEqual(
+            movimentacao["status_anterior"],
+            "AGUARDANDO_VISTORIA",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "VISTORIA_APROVADA",
+        )
+
+        self.assertEqual(
+            movimentacao["resultado_vistoria"],
+            "APROVADA",
+        )
+
+        self.assertIsNone(
+            movimentacao["motivo"]
+        )
+
+    def test_deve_criar_movimentacao_de_reprovacao(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        da reprovação da Vistoria.
+        """
+
+        vistoria = {
+            "codigo": 1,
+            "numero_sequencial": 1,
+            "protocolo": "VST-2026-001",
+            "data_resultado": "2026-09-01",
+            "resultado": "REPROVADA",
+            "motivo_reprovacao": (
+                "Inversor sem identificação."
+            ),
+        }
+
+        movimentacao = (
+            criar_movimentacao_vistoria_reprovada(
+                movimentacoes=[
+                    {
+                        "codigo": 7,
+                    }
+                ],
+                vistoria=vistoria,
+                status_anterior=(
+                    StatusHomologacao
+                    .AGUARDANDO_VISTORIA
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .VISTORIA_REPROVADA
+                ),
+                data_movimentacao="2026-09-01",
+                responsavel="Ana Lima",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            8,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "VISTORIA_REPROVADA",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "VISTORIA_REPROVADA",
+        )
+
+        self.assertEqual(
+            movimentacao["resultado_vistoria"],
+            "REPROVADA",
+        )
+
+        self.assertEqual(
+            movimentacao["motivo"],
+            "Inversor sem identificação.",
+        )
+
+    def test_deve_criar_movimentacao_de_correcao(
+        self,
+    ):
+        """
+        Deve registrar a correção realizada
+        após uma Vistoria reprovada.
+        """
+
+        vistoria = {
+            "codigo": 1,
+            "numero_sequencial": 1,
+            "motivo_reprovacao": (
+                "Inversor sem identificação."
+            ),
+        }
+
+        movimentacao = (
+            criar_movimentacao_correcao_pos_vistoria(
+                movimentacoes=[
+                    {
+                        "codigo": 8,
+                    }
+                ],
+                vistoria=vistoria,
+                status_anterior=(
+                    StatusHomologacao
+                    .VISTORIA_REPROVADA
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .CORRECAO_POS_VISTORIA
+                ),
+                data_movimentacao="2026-09-03",
+                responsavel="Carlos Souza",
+                descricao_correcao=(
+                    "Identificação do inversor instalada."
+                ),
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            9,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "CORRECAO_POS_VISTORIA",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "CORRECAO_POS_VISTORIA",
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "descricao_correcao"
+            ],
+            "Identificação do inversor instalada.",
         )
 
 class TestMovimentacoesDocumento(unittest.TestCase):

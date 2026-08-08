@@ -6,12 +6,24 @@ import unittest
 
 from app.dominio.operacoes_campo import (
     StatusInstalacao,
+    StatusVistoria,
+    buscar_ultima_vistoria,
+    buscar_vistoria_por_codigo,
+    buscar_vistoria_por_numero_sequencial,
     criar_dados_operacoes_campo,
     criar_dados_planejamento_instalacao,
+    criar_dados_vistoria_solicitada,
+    gerar_proximo_codigo_vistoria,
+    gerar_proximo_numero_sequencial_vistoria,
+    preparar_agendamento_vistoria,
+    preparar_aprovacao_vistoria,
+    preparar_realizacao_vistoria,
+    preparar_reprovacao_vistoria,
     preparar_conclusao_instalacao,
     preparar_inicio_instalacao,
     validar_instalacao,
     validar_operacoes_campo,
+    validar_vistoria,
 )
 
 
@@ -173,6 +185,1137 @@ class TestOperacoesCampo(unittest.TestCase):
                     "vistorias": [],
                     "ligacao": [],
                 }
+            )
+
+class TestVistoria(
+    unittest.TestCase
+):
+    """
+    Testes da criação, validação
+    e consulta das Vistorias.
+    """
+
+    def setUp(self):
+        """
+        Cria uma Vistoria solicitada padrão.
+        """
+
+        self.vistoria = (
+            criar_dados_vistoria_solicitada(
+                codigo=1,
+                numero_sequencial=1,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+                observacoes=(
+                    "Primeira vistoria."
+                ),
+            )
+        )
+
+    def test_criar_vistoria_solicitada(
+        self,
+    ):
+        """
+        Deve criar uma Vistoria com
+        status SOLICITADA.
+        """
+
+        self.assertEqual(
+            self.vistoria["codigo"],
+            1,
+        )
+
+        self.assertEqual(
+            self.vistoria[
+                "numero_sequencial"
+            ],
+            1,
+        )
+
+        self.assertEqual(
+            self.vistoria["status"],
+            StatusVistoria.SOLICITADA.value,
+        )
+
+        self.assertEqual(
+            self.vistoria["protocolo"],
+            "VST-2026-001",
+        )
+
+        self.assertIsNone(
+            self.vistoria["data_agendamento"]
+        )
+
+        self.assertIsNone(
+            self.vistoria["resultado"]
+        )
+
+    def test_vistoria_deve_normalizar_textos(
+        self,
+    ):
+        """
+        Os textos devem ser armazenados
+        sem espaços externos.
+        """
+
+        vistoria = (
+            criar_dados_vistoria_solicitada(
+                codigo=1,
+                numero_sequencial=1,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "  Ana Lima  "
+                ),
+                protocolo="  VST-001  ",
+                observacoes="  Primeira.  ",
+            )
+        )
+
+        self.assertEqual(
+            vistoria[
+                "responsavel_solicitacao"
+            ],
+            "Ana Lima",
+        )
+
+        self.assertEqual(
+            vistoria["protocolo"],
+            "VST-001",
+        )
+
+        self.assertEqual(
+            vistoria["observacoes"],
+            "Primeira.",
+        )
+
+    def test_validar_vistoria_solicitada(
+        self,
+    ):
+        """
+        Uma Vistoria solicitada corretamente
+        deve ser válida.
+        """
+
+        resultado = validar_vistoria(
+            self.vistoria
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+    def test_status_vistoria_invalido(
+        self,
+    ):
+        """
+        Um status não oficial deve ser rejeitado.
+        """
+
+        self.vistoria["status"] = (
+            "CANCELADA"
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Status de Vistoria inválido",
+        ):
+            validar_vistoria(
+                self.vistoria
+            )
+
+    def test_vistoria_solicitada_nao_pode_ter_agendamento(
+        self,
+    ):
+        """
+        Uma Vistoria solicitada ainda não pode
+        possuir dados de agendamento.
+        """
+
+        self.vistoria["data_agendamento"] = (
+            "2026-08-30"
+        )
+
+        self.vistoria[
+            "responsavel_agendamento"
+        ] = "Carlos Souza"
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não pode possuir",
+        ):
+            validar_vistoria(
+                self.vistoria
+            )
+
+    def test_campo_obrigatorio_ausente(
+        self,
+    ):
+        """
+        A estrutura incompleta deve ser rejeitada.
+        """
+
+        del self.vistoria["protocolo"]
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "campo ausente",
+        ):
+            validar_vistoria(
+                self.vistoria
+            )
+
+    def test_gerar_proximo_codigo_vistoria(
+        self,
+    ):
+        """
+        Deve gerar o código após o maior
+        código já existente.
+        """
+
+        resultado = (
+            gerar_proximo_codigo_vistoria(
+                [
+                    {
+                        "codigo": 2,
+                    },
+                    {
+                        "codigo": 5,
+                    },
+                    {
+                        "codigo": 3,
+                    },
+                ]
+            )
+        )
+
+        self.assertEqual(
+            resultado,
+            6,
+        )
+
+    def test_gerar_primeiro_codigo_vistoria(
+        self,
+    ):
+        """
+        A primeira Vistoria deve receber código 1.
+        """
+
+        self.assertEqual(
+            gerar_proximo_codigo_vistoria(
+                []
+            ),
+            1,
+        )
+
+    def test_gerar_proximo_numero_sequencial(
+        self,
+    ):
+        """
+        Deve gerar a próxima tentativa
+        após o maior número sequencial.
+        """
+
+        resultado = (
+            gerar_proximo_numero_sequencial_vistoria(
+                [
+                    {
+                        "numero_sequencial": 1,
+                    },
+                    {
+                        "numero_sequencial": 2,
+                    },
+                ]
+            )
+        )
+
+        self.assertEqual(
+            resultado,
+            3,
+        )
+
+    def test_buscar_vistoria_por_codigo(
+        self,
+    ):
+        """
+        Deve localizar a Vistoria
+        pelo código interno.
+        """
+
+        resultado = buscar_vistoria_por_codigo(
+            [
+                self.vistoria,
+            ],
+            1,
+        )
+
+        self.assertIs(
+            resultado,
+            self.vistoria,
+        )
+
+    def test_buscar_vistoria_por_numero_sequencial(
+        self,
+    ):
+        """
+        Deve localizar a tentativa
+        pelo número sequencial.
+        """
+
+        resultado = (
+            buscar_vistoria_por_numero_sequencial(
+                [
+                    self.vistoria,
+                ],
+                1,
+            )
+        )
+
+        self.assertIs(
+            resultado,
+            self.vistoria,
+        )
+
+    def test_busca_inexistente_deve_retornar_none(
+        self,
+    ):
+        """
+        Consultas sem correspondência
+        devem retornar None.
+        """
+
+        self.assertIsNone(
+            buscar_vistoria_por_codigo(
+                [
+                    self.vistoria,
+                ],
+                999,
+            )
+        )
+
+    def test_buscar_ultima_vistoria(
+        self,
+    ):
+        """
+        Deve retornar a tentativa com o maior
+        número sequencial.
+        """
+
+        segunda_vistoria = (
+            criar_dados_vistoria_solicitada(
+                codigo=2,
+                numero_sequencial=2,
+                data_solicitacao="2026-09-10",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-002",
+            )
+        )
+
+        resultado = buscar_ultima_vistoria(
+            [
+                segunda_vistoria,
+                self.vistoria,
+            ]
+        )
+
+        self.assertIs(
+            resultado,
+            segunda_vistoria,
+        )
+
+    def test_buscar_ultima_vistoria_lista_vazia(
+        self,
+    ):
+        """
+        Uma coleção vazia não possui
+        última Vistoria.
+        """
+
+        self.assertIsNone(
+            buscar_ultima_vistoria(
+                []
+            )
+        )
+
+    def test_operacoes_campo_deve_validar_vistorias(
+        self,
+    ):
+        """
+        A validação das Operações de Campo deve
+        validar cada Vistoria armazenada.
+        """
+
+        operacoes_campo = (
+            criar_dados_operacoes_campo()
+        )
+
+        operacoes_campo[
+            "vistorias"
+        ].append(
+            self.vistoria
+        )
+
+        resultado = validar_operacoes_campo(
+            operacoes_campo
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+class TestAgendamentoVistoria(
+    unittest.TestCase
+):
+    """
+    Testes do agendamento da Vistoria.
+    """
+
+    def setUp(self):
+        """
+        Cria uma Vistoria solicitada padrão.
+        """
+
+        self.vistoria = (
+            criar_dados_vistoria_solicitada(
+                codigo=1,
+                numero_sequencial=1,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+                observacoes=(
+                    "Aguardando agendamento."
+                ),
+            )
+        )
+
+    def test_preparar_agendamento_vistoria(
+        self,
+    ):
+        """
+        Deve retornar uma cópia da Vistoria
+        com status AGENDADA.
+        """
+
+        resultado = preparar_agendamento_vistoria(
+            vistoria=self.vistoria,
+            data_agendamento="2026-08-30",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            observacoes="Vistoria agendada.",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusVistoria.AGENDADA.value,
+        )
+
+        self.assertEqual(
+            resultado["data_agendamento"],
+            "2026-08-30",
+        )
+
+        self.assertEqual(
+            resultado[
+                "responsavel_agendamento"
+            ],
+            "Carlos Souza",
+        )
+
+        self.assertEqual(
+            resultado["observacoes"],
+            "Vistoria agendada.",
+        )
+
+    def test_agendamento_nao_deve_alterar_original(
+        self,
+    ):
+        """
+        A preparação não deve modificar
+        a Vistoria recebida.
+        """
+
+        preparar_agendamento_vistoria(
+            vistoria=self.vistoria,
+            data_agendamento="2026-08-30",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+        )
+
+        self.assertEqual(
+            self.vistoria["status"],
+            StatusVistoria.SOLICITADA.value,
+        )
+
+        self.assertIsNone(
+            self.vistoria["data_agendamento"]
+        )
+
+    def test_agendamento_deve_normalizar_responsavel(
+        self,
+    ):
+        """
+        O responsável deve ser armazenado
+        sem espaços externos.
+        """
+
+        resultado = preparar_agendamento_vistoria(
+            vistoria=self.vistoria,
+            data_agendamento="2026-08-30",
+            responsavel_agendamento=(
+                "  Carlos Souza  "
+            ),
+        )
+
+        self.assertEqual(
+            resultado[
+                "responsavel_agendamento"
+            ],
+            "Carlos Souza",
+        )
+
+    def test_agendamento_deve_preservar_observacao(
+        self,
+    ):
+        """
+        Quando nenhuma nova observação for informada,
+        o conteúdo anterior deve ser preservado.
+        """
+
+        resultado = preparar_agendamento_vistoria(
+            vistoria=self.vistoria,
+            data_agendamento="2026-08-30",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+        )
+
+        self.assertEqual(
+            resultado["observacoes"],
+            "Aguardando agendamento.",
+        )
+
+    def test_nao_deve_agendar_vistoria_agendada(
+        self,
+    ):
+        """
+        Uma Vistoria já agendada não pode
+        ser agendada novamente.
+        """
+
+        vistoria_agendada = (
+            preparar_agendamento_vistoria(
+                vistoria=self.vistoria,
+                data_agendamento="2026-08-30",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "solicitada",
+        ):
+            preparar_agendamento_vistoria(
+                vistoria=vistoria_agendada,
+                data_agendamento="2026-08-31",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+
+    def test_data_agendamento_invalida(
+        self,
+    ):
+        """
+        A data deve utilizar o formato ISO.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "AAAA-MM-DD",
+        ):
+            preparar_agendamento_vistoria(
+                vistoria=self.vistoria,
+                data_agendamento="30/08/2026",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+
+    def test_agendamento_anterior_a_solicitacao(
+        self,
+    ):
+        """
+        O agendamento não pode ser anterior
+        à solicitação da Vistoria.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "anterior",
+        ):
+            preparar_agendamento_vistoria(
+                vistoria=self.vistoria,
+                data_agendamento="2026-08-24",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+
+    def test_responsavel_agendamento_obrigatorio(
+        self,
+    ):
+        """
+        O agendamento deve possuir responsável.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Responsável",
+        ):
+            preparar_agendamento_vistoria(
+                vistoria=self.vistoria,
+                data_agendamento="2026-08-30",
+                responsavel_agendamento=" ",
+            )
+
+class TestRealizacaoVistoria(
+    unittest.TestCase
+):
+    """
+    Testes do registro da realização
+    da Vistoria.
+    """
+
+    def setUp(self):
+        """
+        Cria uma Vistoria agendada padrão.
+        """
+
+        vistoria_solicitada = (
+            criar_dados_vistoria_solicitada(
+                codigo=1,
+                numero_sequencial=1,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+                observacoes=(
+                    "Aguardando realização."
+                ),
+            )
+        )
+
+        self.vistoria = (
+            preparar_agendamento_vistoria(
+                vistoria=vistoria_solicitada,
+                data_agendamento="2026-08-30",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+        )
+
+    def test_preparar_realizacao_vistoria(
+        self,
+    ):
+        """
+        Deve retornar uma cópia da Vistoria
+        com status REALIZADA.
+        """
+
+        resultado = preparar_realizacao_vistoria(
+            vistoria=self.vistoria,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "Marcos Oliveira"
+            ),
+            observacoes=(
+                "Vistoria realizada no local."
+            ),
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusVistoria.REALIZADA.value,
+        )
+
+        self.assertEqual(
+            resultado["data_realizacao"],
+            "2026-08-30",
+        )
+
+        self.assertEqual(
+            resultado[
+                "responsavel_realizacao"
+            ],
+            "Marcos Oliveira",
+        )
+
+        self.assertIsNone(
+            resultado["resultado"]
+        )
+
+        self.assertIsNone(
+            resultado["motivo_reprovacao"]
+        )
+
+    def test_realizacao_nao_deve_alterar_original(
+        self,
+    ):
+        """
+        A preparação deve preservar
+        a Vistoria recebida.
+        """
+
+        preparar_realizacao_vistoria(
+            vistoria=self.vistoria,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "Marcos Oliveira"
+            ),
+        )
+
+        self.assertEqual(
+            self.vistoria["status"],
+            StatusVistoria.AGENDADA.value,
+        )
+
+        self.assertIsNone(
+            self.vistoria["data_realizacao"]
+        )
+
+    def test_realizacao_deve_normalizar_responsavel(
+        self,
+    ):
+        """
+        O responsável deve ser armazenado
+        sem espaços externos.
+        """
+
+        resultado = preparar_realizacao_vistoria(
+            vistoria=self.vistoria,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "  Marcos Oliveira  "
+            ),
+        )
+
+        self.assertEqual(
+            resultado[
+                "responsavel_realizacao"
+            ],
+            "Marcos Oliveira",
+        )
+
+    def test_realizacao_deve_preservar_observacao(
+        self,
+    ):
+        """
+        Sem nova observação, o conteúdo
+        anterior deve ser preservado.
+        """
+
+        resultado = preparar_realizacao_vistoria(
+            vistoria=self.vistoria,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "Marcos Oliveira"
+            ),
+        )
+
+        self.assertEqual(
+            resultado["observacoes"],
+            "Aguardando realização.",
+        )
+
+    def test_nao_deve_realizar_vistoria_solicitada(
+        self,
+    ):
+        """
+        Uma Vistoria ainda não agendada
+        não pode ser realizada.
+        """
+
+        vistoria_solicitada = (
+            criar_dados_vistoria_solicitada(
+                codigo=1,
+                numero_sequencial=1,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+            )
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "agendada",
+        ):
+            preparar_realizacao_vistoria(
+                vistoria=vistoria_solicitada,
+                data_realizacao="2026-08-30",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+            )
+
+    def test_nao_deve_realizar_vistoria_duas_vezes(
+        self,
+    ):
+        """
+        Uma Vistoria realizada não pode
+        ser realizada novamente.
+        """
+
+        vistoria_realizada = (
+            preparar_realizacao_vistoria(
+                vistoria=self.vistoria,
+                data_realizacao="2026-08-30",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+            )
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "agendada",
+        ):
+            preparar_realizacao_vistoria(
+                vistoria=vistoria_realizada,
+                data_realizacao="2026-08-31",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+            )
+
+    def test_data_realizacao_invalida(
+        self,
+    ):
+        """
+        A data deve utilizar o formato ISO.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "AAAA-MM-DD",
+        ):
+            preparar_realizacao_vistoria(
+                vistoria=self.vistoria,
+                data_realizacao="30/08/2026",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+            )
+
+    def test_realizacao_anterior_ao_agendamento(
+        self,
+    ):
+        """
+        A realização não pode ser anterior
+        à data agendada.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "anterior",
+        ):
+            preparar_realizacao_vistoria(
+                vistoria=self.vistoria,
+                data_realizacao="2026-08-29",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+            )
+
+    def test_responsavel_realizacao_obrigatorio(
+        self,
+    ):
+        """
+        A realização deve possuir responsável.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Responsável",
+        ):
+            preparar_realizacao_vistoria(
+                vistoria=self.vistoria,
+                data_realizacao="2026-08-30",
+                responsavel_realizacao=" ",
+            )
+
+class TestResultadoVistoria(
+    unittest.TestCase
+):
+    """
+    Testes do resultado formal
+    da Vistoria.
+    """
+
+    def setUp(self):
+        """
+        Cria uma Vistoria realizada padrão.
+        """
+
+        vistoria_solicitada = (
+            criar_dados_vistoria_solicitada(
+                codigo=1,
+                numero_sequencial=1,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+                observacoes=(
+                    "Aguardando resultado."
+                ),
+            )
+        )
+
+        vistoria_agendada = (
+            preparar_agendamento_vistoria(
+                vistoria=vistoria_solicitada,
+                data_agendamento="2026-08-30",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+        )
+
+        self.vistoria = (
+            preparar_realizacao_vistoria(
+                vistoria=vistoria_agendada,
+                data_realizacao="2026-08-30",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+            )
+        )
+
+    def test_preparar_aprovacao_vistoria(
+        self,
+    ):
+        """
+        Deve criar uma cópia aprovada
+        com os dados do resultado.
+        """
+
+        resultado = preparar_aprovacao_vistoria(
+            vistoria=self.vistoria,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            observacoes="Vistoria aprovada.",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusVistoria.APROVADA.value,
+        )
+
+        self.assertEqual(
+            resultado["resultado"],
+            "APROVADA",
+        )
+
+        self.assertEqual(
+            resultado["data_resultado"],
+            "2026-09-01",
+        )
+
+        self.assertEqual(
+            resultado["responsavel_resultado"],
+            "Ana Lima",
+        )
+
+        self.assertIsNone(
+            resultado["motivo_reprovacao"]
+        )
+
+    def test_preparar_reprovacao_vistoria(
+        self,
+    ):
+        """
+        Deve criar uma cópia reprovada
+        com motivo obrigatório.
+        """
+
+        resultado = preparar_reprovacao_vistoria(
+            vistoria=self.vistoria,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            motivo_reprovacao=(
+                "Inversor sem identificação."
+            ),
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusVistoria.REPROVADA.value,
+        )
+
+        self.assertEqual(
+            resultado["resultado"],
+            "REPROVADA",
+        )
+
+        self.assertEqual(
+            resultado["motivo_reprovacao"],
+            "Inversor sem identificação.",
+        )
+
+    def test_resultado_nao_deve_alterar_original(
+        self,
+    ):
+        """
+        A preparação deve preservar
+        a Vistoria original.
+        """
+
+        preparar_aprovacao_vistoria(
+            vistoria=self.vistoria,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+        )
+
+        self.assertEqual(
+            self.vistoria["status"],
+            StatusVistoria.REALIZADA.value,
+        )
+
+        self.assertIsNone(
+            self.vistoria["resultado"]
+        )
+
+    def test_aprovacao_exige_vistoria_realizada(
+        self,
+    ):
+        """
+        Uma Vistoria ainda agendada
+        não pode ser aprovada.
+        """
+
+        vistoria_solicitada = (
+            criar_dados_vistoria_solicitada(
+                codigo=2,
+                numero_sequencial=2,
+                data_solicitacao="2026-09-10",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-002",
+            )
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "realizada",
+        ):
+            preparar_aprovacao_vistoria(
+                vistoria=vistoria_solicitada,
+                data_resultado="2026-09-11",
+                responsavel_resultado=(
+                    "Ana Lima"
+                ),
+            )
+
+    def test_reprovacao_exige_motivo(
+        self,
+    ):
+        """
+        Uma reprovação deve possuir motivo.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Motivo",
+        ):
+            preparar_reprovacao_vistoria(
+                vistoria=self.vistoria,
+                data_resultado="2026-09-01",
+                responsavel_resultado=(
+                    "Ana Lima"
+                ),
+                motivo_reprovacao=" ",
+            )
+
+    def test_resultado_nao_pode_anteceder_realizacao(
+        self,
+    ):
+        """
+        O resultado não pode ser anterior
+        à realização da Vistoria.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "anterior",
+        ):
+            preparar_aprovacao_vistoria(
+                vistoria=self.vistoria,
+                data_resultado="2026-08-29",
+                responsavel_resultado=(
+                    "Ana Lima"
+                ),
+            )
+
+    def test_responsavel_resultado_obrigatorio(
+        self,
+    ):
+        """
+        O resultado deve possuir responsável.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Responsável",
+        ):
+            preparar_aprovacao_vistoria(
+                vistoria=self.vistoria,
+                data_resultado="2026-09-01",
+                responsavel_resultado=" ",
+            )
+
+    def test_nao_deve_aprovar_duas_vezes(
+        self,
+    ):
+        """
+        Uma Vistoria aprovada não pode
+        receber novo resultado.
+        """
+
+        vistoria_aprovada = (
+            preparar_aprovacao_vistoria(
+                vistoria=self.vistoria,
+                data_resultado="2026-09-01",
+                responsavel_resultado=(
+                    "Ana Lima"
+                ),
+            )
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "realizada",
+        ):
+            preparar_aprovacao_vistoria(
+                vistoria=vistoria_aprovada,
+                data_resultado="2026-09-02",
+                responsavel_resultado=(
+                    "Ana Lima"
+                ),
             )
 
 class TestPlanejamentoInstalacao(

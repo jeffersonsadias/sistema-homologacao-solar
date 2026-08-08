@@ -104,6 +104,12 @@ from app.dominio.movimentacoes_homologacao import (
     criar_movimentacao_instalacao_concluida,
     criar_movimentacao_instalacao_iniciada,
     criar_movimentacao_instalacao_planejada,
+    criar_movimentacao_vistoria_solicitada,
+    criar_movimentacao_vistoria_agendada,
+    criar_movimentacao_vistoria_realizada,
+    criar_movimentacao_vistoria_aprovada,
+    criar_movimentacao_vistoria_reprovada,
+    criar_movimentacao_correcao_pos_vistoria,
     criar_movimentacao_resposta_concessionaria,
     criar_movimentacao_resposta_exigencia,
     criar_movimentacao_status_documento,
@@ -114,12 +120,23 @@ from app.dominio.movimentacoes_homologacao import (
 )
 
 from app.dominio.operacoes_campo import (
+    StatusVistoria,
+    buscar_ultima_vistoria,
+    buscar_vistoria_por_codigo,
     criar_dados_operacoes_campo,
     criar_dados_planejamento_instalacao,
+    criar_dados_vistoria_solicitada,
+    gerar_proximo_codigo_vistoria,
+    gerar_proximo_numero_sequencial_vistoria,
+    preparar_agendamento_vistoria,
     preparar_conclusao_instalacao,
     preparar_inicio_instalacao,
+    preparar_realizacao_vistoria,
+    preparar_aprovacao_vistoria,
+    preparar_reprovacao_vistoria,
     validar_instalacao,
     validar_operacoes_campo,
+    validar_vistoria,
 )
 
 # ============================================================
@@ -4492,6 +4509,1084 @@ def concluir_instalacao(
     homologacao["operacoes_campo"] = (
         operacoes_candidatas
     )
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def solicitar_vistoria(
+    homologacao: dict,
+    data_solicitacao: str,
+    responsavel_solicitacao: str,
+    protocolo: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra uma nova solicitação de Vistoria.
+
+    A operação:
+
+    1. valida a estrutura da Homologação;
+    2. impede operações em estados terminais;
+    3. exige um estado compatível;
+    4. prepara uma cópia das Operações de Campo;
+    5. verifica a tentativa anterior, quando existente;
+    6. gera código e número sequencial;
+    7. cria e valida a nova Vistoria;
+    8. valida a transição do estado geral;
+    9. prepara a Movimentação;
+    10. aplica todas as alterações de forma atômica;
+    11. atualiza o responsável atual.
+
+    Estados admitidos:
+
+    - INSTALACAO_CONCLUIDA:
+      primeira solicitação;
+
+    - CORRECAO_POS_VISTORIA:
+      nova tentativa após reprovação e correção.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível solicitar Vistoria "
+                "para uma Homologação em estado terminal."
+            ),
+        )
+    )
+
+    estados_permitidos = {
+        StatusHomologacao
+        .INSTALACAO_CONCLUIDA,
+
+        StatusHomologacao
+        .CORRECAO_POS_VISTORIA,
+    }
+
+    if status_atual not in estados_permitidos:
+        raise ValueError(
+            "A Vistoria somente pode ser solicitada "
+            "após a conclusão da Instalação ou após "
+            "uma correção pós-vistoria."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    vistorias_candidatas = (
+        operacoes_candidatas["vistorias"]
+    )
+
+    ultima_vistoria = buscar_ultima_vistoria(
+        vistorias_candidatas
+    )
+
+    if (
+        status_atual
+        == StatusHomologacao
+        .INSTALACAO_CONCLUIDA
+        and ultima_vistoria is not None
+    ):
+        raise ValueError(
+            "A primeira Vistoria da Homologação "
+            "já foi registrada."
+        )
+
+    if (
+        status_atual
+        == StatusHomologacao
+        .CORRECAO_POS_VISTORIA
+    ):
+        if ultima_vistoria is None:
+            raise ValueError(
+                "Não existe Vistoria anterior "
+                "para a nova solicitação."
+            )
+
+        validar_vistoria(
+            ultima_vistoria
+        )
+
+        if (
+            ultima_vistoria.get("status")
+            != StatusVistoria.REPROVADA.value
+        ):
+            raise ValueError(
+                "Uma nova Vistoria somente pode ser "
+                "solicitada após uma tentativa reprovada."
+            )
+
+    codigo_vistoria = (
+        gerar_proximo_codigo_vistoria(
+            vistorias_candidatas
+        )
+    )
+
+    numero_sequencial = (
+        gerar_proximo_numero_sequencial_vistoria(
+            vistorias_candidatas
+        )
+    )
+
+    vistoria_candidata = (
+        criar_dados_vistoria_solicitada(
+            codigo=codigo_vistoria,
+            numero_sequencial=(
+                numero_sequencial
+            ),
+            data_solicitacao=(
+                data_solicitacao
+            ),
+            responsavel_solicitacao=(
+                responsavel_solicitacao
+            ),
+            protocolo=protocolo,
+            observacoes=observacoes,
+        )
+    )
+
+    validar_vistoria(
+        vistoria_candidata
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_solicitacao,
+            "Responsável pela solicitação",
+        )
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .VISTORIA_SOLICITADA
+    )
+
+    if not transicao_status_homologacao_e_valida(
+        status_atual,
+        novo_status,
+    ):
+        raise ValueError(
+            "A transição para Vistoria Solicitada "
+            "não é permitida."
+        )
+
+    vistorias_candidatas.append(
+        vistoria_candidata
+    )
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_vistoria_solicitada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            vistoria=vistoria_candidata,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def agendar_vistoria(
+    homologacao: dict,
+    codigo_vistoria: int,
+    data_agendamento: str,
+    responsavel_agendamento: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra o agendamento de uma Vistoria.
+
+    A operação:
+
+    1. valida a estrutura da Homologação;
+    2. impede operações em estados terminais;
+    3. exige o status VISTORIA_SOLICITADA;
+    4. prepara uma cópia das Operações de Campo;
+    5. localiza a Vistoria pelo código;
+    6. exige que ela seja a tentativa mais recente;
+    7. prepara e valida a Vistoria candidata;
+    8. valida a transição do estado geral;
+    9. prepara a Movimentação;
+    10. aplica todas as alterações de forma atômica;
+    11. atualiza o responsável atual.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível agendar Vistoria "
+                "para uma Homologação em estado terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .VISTORIA_SOLICITADA
+    ):
+        raise ValueError(
+            "A Vistoria somente pode ser agendada "
+            "quando a Homologação estiver com uma "
+            "solicitação de Vistoria aberta."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    vistorias_candidatas = (
+        operacoes_candidatas["vistorias"]
+    )
+
+    vistoria_atual = buscar_vistoria_por_codigo(
+        vistorias_candidatas,
+        codigo_vistoria,
+    )
+
+    if vistoria_atual is None:
+        raise ValueError(
+            "Vistoria com código "
+            f"{codigo_vistoria} não encontrada."
+        )
+
+    ultima_vistoria = buscar_ultima_vistoria(
+        vistorias_candidatas
+    )
+
+    if (
+        ultima_vistoria is None
+        or ultima_vistoria.get("codigo")
+        != codigo_vistoria
+    ):
+        raise ValueError(
+            "Somente a Vistoria mais recente "
+            "pode ser agendada."
+        )
+
+    vistoria_candidata = (
+        preparar_agendamento_vistoria(
+            vistoria=vistoria_atual,
+            data_agendamento=data_agendamento,
+            responsavel_agendamento=(
+                responsavel_agendamento
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_agendamento,
+            "Responsável pelo agendamento",
+        )
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .AGUARDANDO_VISTORIA
+    )
+
+    if not transicao_status_homologacao_e_valida(
+        status_atual,
+        novo_status,
+    ):
+        raise ValueError(
+            "A transição para Aguardando Vistoria "
+            "não é permitida."
+        )
+
+    indice_vistoria = next(
+        indice
+        for indice, vistoria in enumerate(
+            vistorias_candidatas
+        )
+        if vistoria.get("codigo")
+        == codigo_vistoria
+    )
+
+    vistorias_candidatas[
+        indice_vistoria
+    ] = vistoria_candidata
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_vistoria_agendada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            vistoria=vistoria_candidata,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def registrar_realizacao_vistoria(
+    homologacao: dict,
+    codigo_vistoria: int,
+    data_realizacao: str,
+    responsavel_realizacao: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra a realização de uma Vistoria.
+
+    A operação:
+
+    1. valida a estrutura da Homologação;
+    2. impede operações em estados terminais;
+    3. exige o status AGUARDANDO_VISTORIA;
+    4. prepara uma cópia das Operações de Campo;
+    5. localiza a Vistoria;
+    6. exige que ela seja a tentativa mais recente;
+    7. prepara e valida a Vistoria candidata;
+    8. prepara a Movimentação;
+    9. aplica as alterações de forma atômica;
+    10. atualiza o responsável atual.
+
+    O estado geral da Homologação permanece
+    AGUARDANDO_VISTORIA.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível registrar a realização "
+                "de uma Vistoria em Homologação terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .AGUARDANDO_VISTORIA
+    ):
+        raise ValueError(
+            "A realização somente pode ser registrada "
+            "quando a Homologação estiver aguardando "
+            "a Vistoria."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    vistorias_candidatas = (
+        operacoes_candidatas["vistorias"]
+    )
+
+    vistoria_atual = buscar_vistoria_por_codigo(
+        vistorias_candidatas,
+        codigo_vistoria,
+    )
+
+    if vistoria_atual is None:
+        raise ValueError(
+            "Vistoria com código "
+            f"{codigo_vistoria} não encontrada."
+        )
+
+    ultima_vistoria = buscar_ultima_vistoria(
+        vistorias_candidatas
+    )
+
+    if (
+        ultima_vistoria is None
+        or ultima_vistoria.get("codigo")
+        != codigo_vistoria
+    ):
+        raise ValueError(
+            "Somente a Vistoria mais recente "
+            "pode receber o registro de realização."
+        )
+
+    vistoria_candidata = (
+        preparar_realizacao_vistoria(
+            vistoria=vistoria_atual,
+            data_realizacao=data_realizacao,
+            responsavel_realizacao=(
+                responsavel_realizacao
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_realizacao,
+            "Responsável pela realização",
+        )
+    )
+
+    indice_vistoria = next(
+        indice
+        for indice, vistoria in enumerate(
+            vistorias_candidatas
+        )
+        if vistoria.get("codigo")
+        == codigo_vistoria
+    )
+
+    vistorias_candidatas[
+        indice_vistoria
+    ] = vistoria_candidata
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_vistoria_realizada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            vistoria=vistoria_candidata,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def aprovar_vistoria(
+    homologacao: dict,
+    codigo_vistoria: int,
+    data_resultado: str,
+    responsavel_resultado: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra a aprovação formal de uma Vistoria.
+
+    A operação exige:
+
+    - Homologação em AGUARDANDO_VISTORIA;
+    - Vistoria existente;
+    - tentativa mais recente;
+    - Vistoria local em estado REALIZADA.
+
+    A Homologação avança para VISTORIA_APROVADA.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível aprovar Vistoria "
+                "em uma Homologação terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .AGUARDANDO_VISTORIA
+    ):
+        raise ValueError(
+            "A aprovação somente pode ser registrada "
+            "quando a Homologação estiver aguardando "
+            "o resultado da Vistoria."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    vistorias_candidatas = (
+        operacoes_candidatas["vistorias"]
+    )
+
+    vistoria_atual = buscar_vistoria_por_codigo(
+        vistorias_candidatas,
+        codigo_vistoria,
+    )
+
+    if vistoria_atual is None:
+        raise ValueError(
+            "Vistoria com código "
+            f"{codigo_vistoria} não encontrada."
+        )
+
+    ultima_vistoria = buscar_ultima_vistoria(
+        vistorias_candidatas
+    )
+
+    if (
+        ultima_vistoria is None
+        or ultima_vistoria.get("codigo")
+        != codigo_vistoria
+    ):
+        raise ValueError(
+            "Somente a Vistoria mais recente "
+            "pode receber um resultado."
+        )
+
+    vistoria_candidata = (
+        preparar_aprovacao_vistoria(
+            vistoria=vistoria_atual,
+            data_resultado=data_resultado,
+            responsavel_resultado=(
+                responsavel_resultado
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_resultado,
+            "Responsável pelo resultado",
+        )
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .VISTORIA_APROVADA
+    )
+
+    if not transicao_status_homologacao_e_valida(
+        status_atual,
+        novo_status,
+    ):
+        raise ValueError(
+            "A transição para Vistoria Aprovada "
+            "não é permitida."
+        )
+
+    indice_vistoria = next(
+        indice
+        for indice, vistoria in enumerate(
+            vistorias_candidatas
+        )
+        if vistoria.get("codigo")
+        == codigo_vistoria
+    )
+
+    vistorias_candidatas[
+        indice_vistoria
+    ] = vistoria_candidata
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_vistoria_aprovada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            vistoria=vistoria_candidata,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def reprovar_vistoria(
+    homologacao: dict,
+    codigo_vistoria: int,
+    data_resultado: str,
+    responsavel_resultado: str,
+    motivo_reprovacao: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra a reprovação formal de uma Vistoria.
+
+    A reprovação exige motivo obrigatório.
+
+    A Homologação avança para VISTORIA_REPROVADA.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível reprovar Vistoria "
+                "em uma Homologação terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .AGUARDANDO_VISTORIA
+    ):
+        raise ValueError(
+            "A reprovação somente pode ser registrada "
+            "quando a Homologação estiver aguardando "
+            "o resultado da Vistoria."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    vistorias_candidatas = (
+        operacoes_candidatas["vistorias"]
+    )
+
+    vistoria_atual = buscar_vistoria_por_codigo(
+        vistorias_candidatas,
+        codigo_vistoria,
+    )
+
+    if vistoria_atual is None:
+        raise ValueError(
+            "Vistoria com código "
+            f"{codigo_vistoria} não encontrada."
+        )
+
+    ultima_vistoria = buscar_ultima_vistoria(
+        vistorias_candidatas
+    )
+
+    if (
+        ultima_vistoria is None
+        or ultima_vistoria.get("codigo")
+        != codigo_vistoria
+    ):
+        raise ValueError(
+            "Somente a Vistoria mais recente "
+            "pode receber um resultado."
+        )
+
+    vistoria_candidata = (
+        preparar_reprovacao_vistoria(
+            vistoria=vistoria_atual,
+            data_resultado=data_resultado,
+            responsavel_resultado=(
+                responsavel_resultado
+            ),
+            motivo_reprovacao=(
+                motivo_reprovacao
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_resultado,
+            "Responsável pelo resultado",
+        )
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .VISTORIA_REPROVADA
+    )
+
+    if not transicao_status_homologacao_e_valida(
+        status_atual,
+        novo_status,
+    ):
+        raise ValueError(
+            "A transição para Vistoria Reprovada "
+            "não é permitida."
+        )
+
+    indice_vistoria = next(
+        indice
+        for indice, vistoria in enumerate(
+            vistorias_candidatas
+        )
+        if vistoria.get("codigo")
+        == codigo_vistoria
+    )
+
+    vistorias_candidatas[
+        indice_vistoria
+    ] = vistoria_candidata
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_vistoria_reprovada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            vistoria=vistoria_candidata,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def registrar_correcao_pos_vistoria(
+    homologacao: dict,
+    codigo_vistoria: int,
+    descricao_correcao: str,
+    responsavel_correcao: str,
+    data_movimentacao: str,
+) -> dict:
+    """
+    Registra a correção realizada após
+    uma Vistoria reprovada.
+
+    A Vistoria reprovada permanece intacta
+    no histórico.
+
+    A Homologação avança para
+    CORRECAO_POS_VISTORIA.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível registrar correção "
+                "em uma Homologação terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .VISTORIA_REPROVADA
+    ):
+        raise ValueError(
+            "A correção pós-vistoria somente pode "
+            "ser registrada após uma Vistoria reprovada."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    vistorias_candidatas = (
+        operacoes_candidatas["vistorias"]
+    )
+
+    vistoria = buscar_vistoria_por_codigo(
+        vistorias_candidatas,
+        codigo_vistoria,
+    )
+
+    if vistoria is None:
+        raise ValueError(
+            "Vistoria com código "
+            f"{codigo_vistoria} não encontrada."
+        )
+
+    ultima_vistoria = buscar_ultima_vistoria(
+        vistorias_candidatas
+    )
+
+    if (
+        ultima_vistoria is None
+        or ultima_vistoria.get("codigo")
+        != codigo_vistoria
+    ):
+        raise ValueError(
+            "Somente a Vistoria mais recente "
+            "pode receber uma correção."
+        )
+
+    validar_vistoria(
+        vistoria
+    )
+
+    if (
+        vistoria.get("status")
+        != StatusVistoria.REPROVADA.value
+    ):
+        raise ValueError(
+            "A correção exige uma Vistoria "
+            "localmente reprovada."
+        )
+
+    descricao_normalizada = (
+        _validar_texto_obrigatorio(
+            descricao_correcao,
+            "Descrição da correção",
+        )
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_correcao,
+            "Responsável pela correção",
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .CORRECAO_POS_VISTORIA
+    )
+
+    if not transicao_status_homologacao_e_valida(
+        status_atual,
+        novo_status,
+    ):
+        raise ValueError(
+            "A transição para Correção Pós-Vistoria "
+            "não é permitida."
+        )
+
+    movimentacao = (
+        criar_movimentacao_correcao_pos_vistoria(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            vistoria=vistoria,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+            descricao_correcao=(
+                descricao_normalizada
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
 
     homologacao["status"] = (
         novo_status.value

@@ -239,6 +239,252 @@ def criar_movimentacao_instalacao_concluida(
         ),
     }
 
+def criar_movimentacao_vistoria_solicitada(
+    movimentacoes: list[dict],
+    vistoria: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    à solicitação de uma Vistoria.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "VISTORIA_SOLICITADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Vistoria "
+            f"{vistoria['numero_sequencial']} "
+            "solicitada sob o protocolo "
+            f"{vistoria['protocolo']}."
+        ),
+        "motivo": None,
+        "codigo_vistoria": vistoria["codigo"],
+        "numero_sequencial_vistoria": (
+            vistoria["numero_sequencial"]
+        ),
+        "protocolo_vistoria": (
+            vistoria["protocolo"]
+        ),
+        "data_solicitacao_vistoria": (
+            vistoria["data_solicitacao"]
+        ),
+    }
+
+def criar_movimentacao_vistoria_agendada(
+    movimentacoes: list[dict],
+    vistoria: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    ao agendamento da Vistoria.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "VISTORIA_AGENDADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Vistoria "
+            f"{vistoria['numero_sequencial']} "
+            "agendada para "
+            f"{vistoria['data_agendamento']}."
+        ),
+        "motivo": None,
+        "codigo_vistoria": vistoria["codigo"],
+        "numero_sequencial_vistoria": (
+            vistoria["numero_sequencial"]
+        ),
+        "protocolo_vistoria": (
+            vistoria["protocolo"]
+        ),
+        "data_agendamento_vistoria": (
+            vistoria["data_agendamento"]
+        ),
+    }
+
+def criar_movimentacao_vistoria_realizada(
+    movimentacoes: list[dict],
+    vistoria: dict,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    à realização da Vistoria.
+
+    O estado geral da Homologação permanece
+    AGUARDANDO_VISTORIA.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "VISTORIA_REALIZADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": None,
+        "novo_status": None,
+        "descricao": (
+            "Vistoria "
+            f"{vistoria['numero_sequencial']} "
+            "realizada em "
+            f"{vistoria['data_realizacao']}."
+        ),
+        "motivo": None,
+        "codigo_vistoria": vistoria["codigo"],
+        "numero_sequencial_vistoria": (
+            vistoria["numero_sequencial"]
+        ),
+        "protocolo_vistoria": (
+            vistoria["protocolo"]
+        ),
+        "data_realizacao_vistoria": (
+            vistoria["data_realizacao"]
+        ),
+        "status_vistoria": vistoria["status"],
+    }
+
+def criar_movimentacao_vistoria_aprovada(
+    movimentacoes: list[dict],
+    vistoria: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    à aprovação da Vistoria.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "VISTORIA_APROVADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Vistoria "
+            f"{vistoria['numero_sequencial']} "
+            "aprovada."
+        ),
+        "motivo": None,
+        "codigo_vistoria": vistoria["codigo"],
+        "numero_sequencial_vistoria": (
+            vistoria["numero_sequencial"]
+        ),
+        "protocolo_vistoria": (
+            vistoria["protocolo"]
+        ),
+        "data_resultado_vistoria": (
+            vistoria["data_resultado"]
+        ),
+        "resultado_vistoria": (
+            vistoria["resultado"]
+        ),
+    }
+
+def criar_movimentacao_vistoria_reprovada(
+    movimentacoes: list[dict],
+    vistoria: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    à reprovação da Vistoria.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "VISTORIA_REPROVADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Vistoria "
+            f"{vistoria['numero_sequencial']} "
+            "reprovada."
+        ),
+        "motivo": vistoria["motivo_reprovacao"],
+        "codigo_vistoria": vistoria["codigo"],
+        "numero_sequencial_vistoria": (
+            vistoria["numero_sequencial"]
+        ),
+        "protocolo_vistoria": (
+            vistoria["protocolo"]
+        ),
+        "data_resultado_vistoria": (
+            vistoria["data_resultado"]
+        ),
+        "resultado_vistoria": (
+            vistoria["resultado"]
+        ),
+    }
+
+def criar_movimentacao_correcao_pos_vistoria(
+    movimentacoes: list[dict],
+    vistoria: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+    descricao_correcao: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    ao registro da correção pós-vistoria.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "CORRECAO_POS_VISTORIA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Correção pós-vistoria registrada para "
+            f"a Vistoria {vistoria['numero_sequencial']}."
+        ),
+        "motivo": vistoria["motivo_reprovacao"],
+        "codigo_vistoria": vistoria["codigo"],
+        "numero_sequencial_vistoria": (
+            vistoria["numero_sequencial"]
+        ),
+        "descricao_correcao": descricao_correcao,
+    }
+
 def criar_movimentacao_documento_adicionado(
     movimentacoes: list[dict],
     documento: dict,

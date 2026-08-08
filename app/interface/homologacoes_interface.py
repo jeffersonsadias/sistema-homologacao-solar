@@ -198,6 +198,82 @@ def _exibir_instalacao(
 
     print("-" * 60)
 
+def _exibir_vistorias(
+    homologacao: dict[str, Any],
+) -> None:
+    """
+    Exibe as Vistorias registradas
+    nas Operações de Campo da Homologação.
+    """
+
+    operacoes_campo = homologacao.get(
+        "operacoes_campo"
+    ) or {}
+
+    vistorias = operacoes_campo.get(
+        "vistorias"
+    ) or []
+
+    if not vistorias:
+        print(
+            "\nNenhuma Vistoria registrada."
+        )
+
+        return
+
+    print()
+    print("-" * 60)
+    print("VISTORIAS")
+    print("-" * 60)
+
+    for vistoria in vistorias:
+        print(
+            f"Código:                    "
+            f"{vistoria.get('codigo', '-')}"
+        )
+
+        print(
+            f"Status:                    "
+            f"{vistoria.get('status', '-')}"
+        )
+
+        print(
+            f"Data da solicitação:       "
+            f"{vistoria.get('data_solicitacao') or '-'}"
+        )
+
+        print(
+            f"Protocolo:                 "
+            f"{vistoria.get('protocolo') or '-'}"
+        )
+
+        print(
+            f"Data do agendamento:       "
+            f"{vistoria.get('data_agendamento') or '-'}"
+        )
+
+        print(
+            f"Data da realização:        "
+            f"{vistoria.get('data_realizacao') or '-'}"
+        )
+
+        print(
+            f"Data do resultado:         "
+            f"{vistoria.get('data_resultado') or '-'}"
+        )
+
+        print(
+            f"Motivo da reprovação:      "
+            f"{vistoria.get('motivo_reprovacao') or '-'}"
+        )
+
+        print(
+            f"Observações:               "
+            f"{vistoria.get('observacoes') or 'Nenhuma'}"
+        )
+
+        print("-" * 60)
+
 # ============================================================
 # CADASTRO
 # ============================================================
@@ -620,6 +696,539 @@ def menu_instalacao() -> None:
             _pausar()
 
 # ============================================================
+# OPERAÇÕES DE CAMPO — VISTORIA
+# ============================================================
+
+def solicitar_vistoria_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    uma nova tentativa de Vistoria.
+    """
+
+    _exibir_titulo(
+        "SOLICITAÇÃO DE VISTORIA"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    data_solicitacao = input(
+        "Data da solicitação (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_solicitacao = input(
+        "Responsável pela solicitação: "
+    ).strip()
+
+    protocolo = input(
+        "Protocolo da solicitação: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes.solicitar_nova_vistoria(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                data_solicitacao=(
+                    data_solicitacao
+                ),
+                responsavel_solicitacao=(
+                    responsavel_solicitacao
+                ),
+                protocolo=protocolo,
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível solicitar "
+            f"a Vistoria: {erro}"
+        )
+
+        return
+
+    print(
+        "\nVistoria solicitada com sucesso."
+    )
+
+    _exibir_vistorias(
+        homologacao_atualizada
+    )
+
+def agendar_vistoria_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    o agendamento de uma Vistoria.
+    """
+
+    _exibir_titulo(
+        "AGENDAMENTO DA VISTORIA"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    codigo_vistoria = ler_int(
+        "Código da Vistoria: "
+    )
+
+    data_agendamento = input(
+        "Data do agendamento (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_agendamento = input(
+        "Responsável pelo agendamento: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .agendar_vistoria_homologacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                codigo_vistoria=codigo_vistoria,
+                data_agendamento=(
+                    data_agendamento
+                ),
+                responsavel_agendamento=(
+                    responsavel_agendamento
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível agendar "
+            f"a Vistoria: {erro}"
+        )
+
+        return
+
+    print(
+        "\nVistoria agendada com sucesso."
+    )
+
+    _exibir_vistorias(
+        homologacao_atualizada
+    )
+
+def registrar_realizacao_vistoria_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    a realização de uma Vistoria.
+    """
+
+    _exibir_titulo(
+        "REALIZAÇÃO DA VISTORIA"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    codigo_vistoria = ler_int(
+        "Código da Vistoria: "
+    )
+
+    data_realizacao = input(
+        "Data da realização (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_realizacao = input(
+        "Responsável pela realização: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .registrar_realizacao_vistoria_homologacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                codigo_vistoria=codigo_vistoria,
+                data_realizacao=data_realizacao,
+                responsavel_realizacao=(
+                    responsavel_realizacao
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível registrar "
+            f"a realização da Vistoria: {erro}"
+        )
+
+        return
+
+    print(
+        "\nRealização da Vistoria registrada "
+        "com sucesso."
+    )
+
+    _exibir_vistorias(
+        homologacao_atualizada
+    )
+
+def aprovar_vistoria_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    a aprovação formal de uma Vistoria.
+    """
+
+    _exibir_titulo(
+        "APROVAÇÃO DA VISTORIA"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    codigo_vistoria = ler_int(
+        "Código da Vistoria: "
+    )
+
+    data_resultado = input(
+        "Data do resultado (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_resultado = input(
+        "Responsável pelo resultado: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .aprovar_vistoria_homologacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                codigo_vistoria=codigo_vistoria,
+                data_resultado=data_resultado,
+                responsavel_resultado=(
+                    responsavel_resultado
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível aprovar "
+            f"a Vistoria: {erro}"
+        )
+
+        return
+
+    print(
+        "\nVistoria aprovada com sucesso."
+    )
+
+    _exibir_vistorias(
+        homologacao_atualizada
+    )
+
+def reprovar_vistoria_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    a reprovação formal de uma Vistoria.
+    """
+
+    _exibir_titulo(
+        "REPROVAÇÃO DA VISTORIA"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    codigo_vistoria = ler_int(
+        "Código da Vistoria: "
+    )
+
+    data_resultado = input(
+        "Data do resultado (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_resultado = input(
+        "Responsável pelo resultado: "
+    ).strip()
+
+    motivo_reprovacao = input(
+        "Motivo da reprovação: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .reprovar_vistoria_homologacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                codigo_vistoria=codigo_vistoria,
+                data_resultado=data_resultado,
+                responsavel_resultado=(
+                    responsavel_resultado
+                ),
+                motivo_reprovacao=(
+                    motivo_reprovacao
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível reprovar "
+            f"a Vistoria: {erro}"
+        )
+
+        return
+
+    print(
+        "\nVistoria reprovada registrada com sucesso."
+    )
+
+    _exibir_vistorias(
+        homologacao_atualizada
+    )
+
+def registrar_correcao_pos_vistoria_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    uma correção após Vistoria reprovada.
+    """
+
+    _exibir_titulo(
+        "CORREÇÃO PÓS-VISTORIA"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    codigo_vistoria = ler_int(
+        "Código da Vistoria: "
+    )
+
+    descricao_correcao = input(
+        "Descrição da correção: "
+    ).strip()
+
+    responsavel_correcao = input(
+        "Responsável pela correção: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .registrar_correcao_pos_vistoria_homologacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                codigo_vistoria=codigo_vistoria,
+                descricao_correcao=(
+                    descricao_correcao
+                ),
+                responsavel_correcao=(
+                    responsavel_correcao
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível registrar "
+            f"a correção pós-vistoria: {erro}"
+        )
+
+        return
+
+    print(
+        "\nCorreção pós-vistoria registrada "
+        "com sucesso."
+    )
+
+    _exibir_vistorias(
+        homologacao_atualizada
+    )
+
+def menu_vistoria() -> None:
+    """
+    Exibe o submenu operacional da Vistoria.
+    """
+
+    while True:
+        _exibir_titulo(
+            "GESTÃO DA VISTORIA"
+        )
+
+        print(
+            "1 - Solicitar nova Vistoria"
+        )
+
+        print(
+            "2 - Agendar Vistoria"
+        )
+
+        print(
+            "3 - Registrar realização"
+        )
+
+        print(
+            "4 - Registrar aprovação"
+        )
+
+        print(
+            "5 - Registrar reprovação"
+        )
+
+        print(
+            "6 - Registrar correção pós-vistoria"
+        )
+
+        print(
+            "0 - Voltar"
+        )
+
+        opcao = input(
+            "\nEscolha uma opção: "
+        ).strip()
+
+        if opcao == "1":
+            solicitar_vistoria_interface()
+            _pausar()
+
+        elif opcao == "2":
+            agendar_vistoria_interface()
+            _pausar()
+
+        elif opcao == "3":
+            registrar_realizacao_vistoria_interface()
+            _pausar()
+
+        elif opcao == "4":
+            aprovar_vistoria_interface()
+            _pausar()
+
+        elif opcao == "5":
+            reprovar_vistoria_interface()
+            _pausar()
+
+        elif opcao == "6":
+            registrar_correcao_pos_vistoria_interface()
+            _pausar()
+
+        elif opcao == "0":
+            return
+
+        else:
+            print(
+                "\nOpção inválida."
+            )
+
+            _pausar()
+
+# ============================================================
 # MENU DE HOMOLOGAÇÕES
 # ============================================================
 
@@ -652,6 +1261,10 @@ def menu_homologacoes() -> None:
         )
 
         print(
+            "5 - Gerenciar Vistoria"
+        )
+
+        print(
             "0 - Voltar"
         )
 
@@ -673,6 +1286,9 @@ def menu_homologacoes() -> None:
 
         elif opcao == "4":
             menu_instalacao()
+
+        elif opcao == "5":
+            menu_vistoria()
 
         elif opcao == "0":
             return

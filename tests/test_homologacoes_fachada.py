@@ -979,6 +979,587 @@ class TestHomologacoesFachada(unittest.TestCase):
         mock_salvar.assert_not_called()
 
     # ========================================================
+    # OPERAÇÕES DE CAMPO — VISTORIA
+    # ========================================================
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "solicitar_vistoria_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_solicitar_nova_vistoria(
+        self,
+        mock_obter,
+        mock_solicitar,
+        mock_salvar,
+    ):
+        """
+        Deve localizar a Homologação, delegar
+        a solicitação ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+            "status": "VISTORIA_SOLICITADA",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_solicitar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes.solicitar_nova_vistoria(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+                data_movimentacao="2026-08-25",
+                observacoes=(
+                    "Primeira tentativa."
+                ),
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_solicitar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            data_solicitacao="2026-08-25",
+            responsavel_solicitacao=(
+                "Ana Lima"
+            ),
+            protocolo="VST-2026-001",
+            data_movimentacao="2026-08-25",
+            observacoes="Primeira tentativa.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "agendar_vistoria_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_agendar_vistoria_homologacao(
+        self,
+        mock_obter,
+        mock_agendar,
+        mock_salvar,
+    ):
+        """
+        Deve delegar o agendamento da Vistoria
+        ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "VISTORIA_AGENDADA",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_agendar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .agendar_vistoria_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                codigo_vistoria=1,
+                data_agendamento="2026-08-30",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-26",
+                observacoes="Visita programada.",
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_agendar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            codigo_vistoria=1,
+            data_agendamento="2026-08-30",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-08-26",
+            observacoes="Visita programada.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "registrar_realizacao_vistoria_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_registrar_realizacao_vistoria_homologacao(
+        self,
+        mock_obter,
+        mock_realizar,
+        mock_salvar,
+    ):
+        """
+        Deve delegar a realização da Vistoria
+        ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "AGUARDANDO_VISTORIA",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_realizar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .registrar_realizacao_vistoria_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                codigo_vistoria=1,
+                data_realizacao="2026-08-30",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+                data_movimentacao="2026-08-30",
+                observacoes="Vistoria realizada.",
+            )
+        )
+
+        mock_realizar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            codigo_vistoria=1,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "Marcos Oliveira"
+            ),
+            data_movimentacao="2026-08-30",
+            observacoes="Vistoria realizada.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "aprovar_vistoria_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_aprovar_vistoria_homologacao(
+        self,
+        mock_obter,
+        mock_aprovar,
+        mock_salvar,
+    ):
+        """
+        Deve delegar a aprovação da Vistoria
+        ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "VISTORIA_APROVADA",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_aprovar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .aprovar_vistoria_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                codigo_vistoria=1,
+                data_resultado="2026-09-01",
+                responsavel_resultado=(
+                    "Ana Lima"
+                ),
+                data_movimentacao="2026-09-01",
+                observacoes="Vistoria aprovada.",
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_aprovar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            data_movimentacao="2026-09-01",
+            observacoes="Vistoria aprovada.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "reprovar_vistoria_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_reprovar_vistoria_homologacao(
+        self,
+        mock_obter,
+        mock_reprovar,
+        mock_salvar,
+    ):
+        """
+        Deve delegar a reprovação da Vistoria
+        ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "VISTORIA_REPROVADA",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_reprovar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .reprovar_vistoria_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                codigo_vistoria=1,
+                data_resultado="2026-09-01",
+                responsavel_resultado=(
+                    "Ana Lima"
+                ),
+                motivo_reprovacao=(
+                    "Inversor sem identificação."
+                ),
+                data_movimentacao="2026-09-01",
+                observacoes=(
+                    "Necessária regularização."
+                ),
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_reprovar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            motivo_reprovacao=(
+                "Inversor sem identificação."
+            ),
+            data_movimentacao="2026-09-01",
+            observacoes=(
+                "Necessária regularização."
+            ),
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "registrar_correcao_pos_vistoria_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_registrar_correcao_pos_vistoria_homologacao(
+        self,
+        mock_obter,
+        mock_correcao,
+        mock_salvar,
+    ):
+        """
+        Deve delegar a correção pós-vistoria
+        ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "CORRECAO_POS_VISTORIA",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_correcao.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .registrar_correcao_pos_vistoria_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                codigo_vistoria=1,
+                descricao_correcao=(
+                    "Identificação do inversor instalada."
+                ),
+                responsavel_correcao=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-09-03",
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_correcao.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            codigo_vistoria=1,
+            descricao_correcao=(
+                "Identificação do inversor instalada."
+            ),
+            responsavel_correcao=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-09-03",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "reprovar_vistoria_no_dominio",
+        side_effect=ValueError(
+            "Motivo da reprovação é obrigatório."
+        ),
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria",
+        return_value={
+            "codigo": 5,
+            "codigo_empresa": 10,
+        },
+    )
+    def test_falha_na_reprovacao_nao_deve_persistir(
+        self,
+        mock_obter,
+        mock_reprovar,
+        mock_salvar,
+    ):
+        """
+        Uma falha do domínio não deve
+        acionar a persistência.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Motivo da reprovação",
+        ):
+            (
+                homologacoes
+                .reprovar_vistoria_homologacao(
+                    codigo_homologacao=5,
+                    codigo_empresa=10,
+                    codigo_vistoria=1,
+                    data_resultado="2026-09-01",
+                    responsavel_resultado=(
+                        "Ana Lima"
+                    ),
+                    motivo_reprovacao=" ",
+                    data_movimentacao=(
+                        "2026-09-01"
+                    ),
+                )
+            )
+
+        mock_reprovar.assert_called_once()
+        mock_salvar.assert_not_called()
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "solicitar_vistoria_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria",
+        side_effect=ValueError(
+            "Homologação não encontrada."
+        ),
+    )
+    def test_vistoria_exige_homologacao_existente(
+        self,
+        mock_obter,
+        mock_solicitar,
+        mock_salvar,
+    ):
+        """
+        Uma Homologação inexistente deve impedir
+        acesso ao domínio e à persistência.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não encontrada",
+        ):
+            homologacoes.solicitar_nova_vistoria(
+                codigo_homologacao=999,
+                codigo_empresa=10,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+                data_movimentacao="2026-08-25",
+            )
+
+        mock_solicitar.assert_not_called()
+        mock_salvar.assert_not_called()
+
+    # ========================================================
     # DEPENDÊNCIAS EXTERNAS
     # ========================================================
 

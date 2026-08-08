@@ -617,6 +617,773 @@ class TestHomologacoesInterface(
         mock_concluir.assert_called_once_with()
         mock_pausar.assert_called_once_with()
 
+    # ========================================================
+    # OPERAÇÕES DE CAMPO — VISTORIA
+    # ========================================================
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.solicitar_nova_vistoria"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-25",
+            "Ana Lima",
+            "VST-2026-001",
+            "2026-08-25",
+            "Primeira tentativa.",
+        ],
+    )
+    def test_solicitar_vistoria_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_solicitar,
+        mock_exibir,
+    ):
+        """
+        Deve coletar os dados, solicitar
+        a Vistoria e exibir o resultado.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_solicitar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .solicitar_vistoria_interface()
+        )
+
+        mock_solicitar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_solicitacao="2026-08-25",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="VST-2026-001",
+            data_movimentacao="2026-08-25",
+            observacoes="Primeira tentativa.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.solicitar_nova_vistoria",
+        side_effect=ValueError(
+            "Estado incompatível."
+        ),
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-25",
+            "Ana Lima",
+            "VST-2026-001",
+            "2026-08-25",
+            "",
+        ],
+    )
+    def test_solicitacao_vistoria_invalida_exibe_erro(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_solicitar,
+        mock_exibir,
+        mock_print,
+    ):
+        """
+        Uma falha da fachada deve ser apresentada
+        sem exibir as Vistorias.
+        """
+
+        (
+            homologacoes_interface
+            .solicitar_vistoria_interface()
+        )
+
+        mock_exibir.assert_not_called()
+
+        mock_print.assert_any_call(
+            "\nNão foi possível solicitar "
+            "a Vistoria: Estado incompatível."
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.agendar_vistoria_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+            1,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-30",
+            "Carlos Souza",
+            "2026-08-26",
+            "Visita programada.",
+        ],
+    )
+    def test_agendar_vistoria_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_agendar,
+        mock_exibir,
+    ):
+        """
+        Deve coletar os dados, agendar
+        a Vistoria e exibir o resultado.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_agendar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .agendar_vistoria_interface()
+        )
+
+        mock_agendar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            codigo_vistoria=1,
+            data_agendamento="2026-08-30",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-08-26",
+            observacoes="Visita programada.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes."
+        "registrar_realizacao_vistoria_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+            1,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-30",
+            "Marcos Oliveira",
+            "2026-08-30",
+            "Vistoria realizada no local.",
+        ],
+    )
+    def test_registrar_realizacao_vistoria_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_realizar,
+        mock_exibir,
+    ):
+        """
+        Deve coletar os dados, registrar
+        a realização e exibir o resultado.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_realizar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .registrar_realizacao_vistoria_interface()
+        )
+
+        mock_realizar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            codigo_vistoria=1,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "Marcos Oliveira"
+            ),
+            data_movimentacao="2026-08-30",
+            observacoes=(
+                "Vistoria realizada no local."
+            ),
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.agendar_vistoria_homologacao",
+        side_effect=ValueError(
+            "Vistoria não encontrada."
+        ),
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+            999,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-08-30",
+            "Carlos Souza",
+            "2026-08-26",
+            "",
+        ],
+    )
+    def test_agendamento_vistoria_invalido_exibe_erro(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_agendar,
+        mock_exibir,
+        mock_print,
+    ):
+        """
+        Uma falha no agendamento deve ser
+        apresentada sem exibir as Vistorias.
+        """
+
+        (
+            homologacoes_interface
+            .agendar_vistoria_interface()
+        )
+
+        mock_exibir.assert_not_called()
+
+        mock_print.assert_any_call(
+            "\nNão foi possível agendar "
+            "a Vistoria: Vistoria não encontrada."
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.aprovar_vistoria_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+            1,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-01",
+            "Ana Lima",
+            "2026-09-01",
+            "Vistoria aprovada.",
+        ],
+    )
+    def test_aprovar_vistoria_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_aprovar,
+        mock_exibir,
+    ):
+        """
+        Deve registrar a aprovação por meio
+        da fachada e exibir o resultado.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_aprovar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .aprovar_vistoria_interface()
+        )
+
+        mock_aprovar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            data_movimentacao="2026-09-01",
+            observacoes="Vistoria aprovada.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.reprovar_vistoria_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+            1,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-01",
+            "Ana Lima",
+            "Inversor sem identificação.",
+            "2026-09-01",
+            "Necessária regularização.",
+        ],
+    )
+    def test_reprovar_vistoria_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_reprovar,
+        mock_exibir,
+    ):
+        """
+        Deve registrar a reprovação por meio
+        da fachada e exibir o resultado.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_reprovar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .reprovar_vistoria_interface()
+        )
+
+        mock_reprovar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            motivo_reprovacao=(
+                "Inversor sem identificação."
+            ),
+            data_movimentacao="2026-09-01",
+            observacoes=(
+                "Necessária regularização."
+            ),
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes."
+        "registrar_correcao_pos_vistoria_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+            1,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "Identificação do inversor instalada.",
+            "Carlos Souza",
+            "2026-09-03",
+        ],
+    )
+    def test_registrar_correcao_pos_vistoria_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_correcao,
+        mock_exibir,
+    ):
+        """
+        Deve registrar a correção pós-vistoria
+        por meio da fachada.
+        """
+
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_correcao.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .registrar_correcao_pos_vistoria_interface()
+        )
+
+        mock_correcao.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            codigo_vistoria=1,
+            descricao_correcao=(
+                "Identificação do inversor instalada."
+            ),
+            responsavel_correcao="Carlos Souza",
+            data_movimentacao="2026-09-03",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_vistorias"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.reprovar_vistoria_homologacao",
+        side_effect=ValueError(
+            "Motivo da reprovação é obrigatório."
+        ),
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+            1,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-01",
+            "Ana Lima",
+            "",
+            "2026-09-01",
+            "",
+        ],
+    )
+    def test_reprovacao_vistoria_invalida_exibe_erro(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_reprovar,
+        mock_exibir,
+        mock_print,
+    ):
+        """
+        Uma falha na reprovação deve ser
+        apresentada sem exibir as Vistorias.
+        """
+
+        (
+            homologacoes_interface
+            .reprovar_vistoria_interface()
+        )
+
+        mock_exibir.assert_not_called()
+
+        mock_print.assert_any_call(
+            "\nNão foi possível reprovar "
+            "a Vistoria: "
+            "Motivo da reprovação é obrigatório."
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "solicitar_vistoria_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "1",
+            "0",
+        ],
+    )
+    def test_menu_vistoria_deve_abrir_solicitacao(
+        self,
+        mock_input,
+        mock_solicitar,
+        mock_pausar,
+    ):
+        """
+        A opção 1 deve abrir
+        a solicitação da Vistoria.
+        """
+
+        homologacoes_interface.menu_vistoria()
+
+        mock_solicitar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "agendar_vistoria_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2",
+            "0",
+        ],
+    )
+    def test_menu_vistoria_deve_abrir_agendamento(
+        self,
+        mock_input,
+        mock_agendar,
+        mock_pausar,
+    ):
+        """
+        A opção 2 deve abrir
+        o agendamento da Vistoria.
+        """
+
+        homologacoes_interface.menu_vistoria()
+
+        mock_agendar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "registrar_realizacao_vistoria_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "3",
+            "0",
+        ],
+    )
+    def test_menu_vistoria_deve_abrir_realizacao(
+        self,
+        mock_input,
+        mock_realizar,
+        mock_pausar,
+    ):
+        """
+        A opção 3 deve abrir
+        a realização da Vistoria.
+        """
+
+        homologacoes_interface.menu_vistoria()
+
+        mock_realizar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "aprovar_vistoria_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "4",
+            "0",
+        ],
+    )
+    def test_menu_vistoria_deve_abrir_aprovacao(
+        self,
+        mock_input,
+        mock_aprovar,
+        mock_pausar,
+    ):
+        """
+        A opção 4 deve abrir
+        a aprovação da Vistoria.
+        """
+
+        homologacoes_interface.menu_vistoria()
+
+        mock_aprovar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "reprovar_vistoria_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "5",
+            "0",
+        ],
+    )
+    def test_menu_vistoria_deve_abrir_reprovacao(
+        self,
+        mock_input,
+        mock_reprovar,
+        mock_pausar,
+    ):
+        """
+        A opção 5 deve abrir
+        a reprovação da Vistoria.
+        """
+
+        homologacoes_interface.menu_vistoria()
+
+        mock_reprovar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "registrar_correcao_pos_vistoria_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "6",
+            "0",
+        ],
+    )
+    def test_menu_vistoria_deve_abrir_correcao(
+        self,
+        mock_input,
+        mock_correcao,
+        mock_pausar,
+    ):
+        """
+        A opção 6 deve abrir
+        a correção pós-vistoria.
+        """
+
+        homologacoes_interface.menu_vistoria()
+
+        mock_correcao.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
     @patch(
         "builtins.print"
     )
@@ -638,6 +1405,29 @@ class TestHomologacoesInterface(
 
         mock_print.assert_any_call(
             "4 - Gerenciar Instalação"
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "builtins.input",
+        return_value="0",
+    )
+    def test_menu_homologacoes_deve_exibir_gestao_vistoria(
+        self,
+        mock_input,
+        mock_print,
+    ):
+        """
+        O menu de Homologações deve apresentar
+        corretamente a Gestão da Vistoria.
+        """
+
+        homologacoes_interface.menu_homologacoes()
+
+        mock_print.assert_any_call(
+            "5 - Gerenciar Vistoria"
         )
 
     @patch(
@@ -740,6 +1530,31 @@ class TestHomologacoesInterface(
         homologacoes_interface.menu_homologacoes()
 
         mock_menu_instalacao.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "menu_vistoria"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "5",
+            "0",
+        ],
+    )
+    def test_menu_deve_abrir_gestao_vistoria(
+        self,
+        mock_input,
+        mock_menu_vistoria,
+    ):
+        """
+        A opção 5 deve abrir o submenu
+        de Gestão da Vistoria.
+        """
+
+        homologacoes_interface.menu_homologacoes()
+
+        mock_menu_vistoria.assert_called_once_with()
 
 if __name__ == "__main__":
     unittest.main()

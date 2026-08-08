@@ -27,6 +27,8 @@ from app import empresas
 from app import projetos
 
 from app.dominio.homologacoes import (
+    agendar_vistoria,
+    aprovar_vistoria,
     buscar_homologacao_ativa_por_projeto,
     buscar_homologacao_por_codigo,
     buscar_homologacoes_por_concessionaria,
@@ -41,7 +43,11 @@ from app.dominio.homologacoes import (
     quantidade_homologacoes_por_status,
     quantidade_homologacoes_sem_responsavel,
     quantidade_total_pendencias_homologacao,
+    registrar_correcao_pos_vistoria,
     registrar_planejamento_instalacao,
+    registrar_realizacao_vistoria,
+    reprovar_vistoria,
+    solicitar_vistoria,
 )
 
 from app.dominio.status_homologacao import (
@@ -82,6 +88,30 @@ iniciar_instalacao_no_dominio = (
 
 concluir_instalacao_no_dominio = (
     concluir_instalacao
+)
+
+solicitar_vistoria_no_dominio = (
+    solicitar_vistoria
+)
+
+agendar_vistoria_no_dominio = (
+    agendar_vistoria
+)
+
+registrar_realizacao_vistoria_no_dominio = (
+    registrar_realizacao_vistoria
+)
+
+aprovar_vistoria_no_dominio = (
+    aprovar_vistoria
+)
+
+reprovar_vistoria_no_dominio = (
+    reprovar_vistoria
+)
+
+registrar_correcao_pos_vistoria_no_dominio = (
+    registrar_correcao_pos_vistoria
 )
 
 # ============================================================
@@ -550,3 +580,226 @@ def concluir_execucao_instalacao(
     _salvar_alteracoes()
 
     return homologacao_atualizada
+
+# ============================================================
+# OPERAÇÕES DE CAMPO — VISTORIA
+# ============================================================
+
+def solicitar_nova_vistoria(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    data_solicitacao: str,
+    responsavel_solicitacao: str,
+    protocolo: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Solicita e persiste uma nova tentativa
+    de Vistoria da Homologação.
+
+    A busca aplica o isolamento por Empresa.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        solicitar_vistoria_no_dominio(
+            homologacao=homologacao,
+            data_solicitacao=data_solicitacao,
+            responsavel_solicitacao=(
+                responsavel_solicitacao
+            ),
+            protocolo=protocolo,
+            data_movimentacao=data_movimentacao,
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def agendar_vistoria_homologacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    codigo_vistoria: int,
+    data_agendamento: str,
+    responsavel_agendamento: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Agenda e persiste uma Vistoria
+    existente da Homologação.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        agendar_vistoria_no_dominio(
+            homologacao=homologacao,
+            codigo_vistoria=codigo_vistoria,
+            data_agendamento=data_agendamento,
+            responsavel_agendamento=(
+                responsavel_agendamento
+            ),
+            data_movimentacao=data_movimentacao,
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def registrar_realizacao_vistoria_homologacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    codigo_vistoria: int,
+    data_realizacao: str,
+    responsavel_realizacao: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Registra e persiste a realização
+    de uma Vistoria.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        registrar_realizacao_vistoria_no_dominio(
+            homologacao=homologacao,
+            codigo_vistoria=codigo_vistoria,
+            data_realizacao=data_realizacao,
+            responsavel_realizacao=(
+                responsavel_realizacao
+            ),
+            data_movimentacao=data_movimentacao,
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def aprovar_vistoria_homologacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    codigo_vistoria: int,
+    data_resultado: str,
+    responsavel_resultado: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Registra e persiste a aprovação
+    formal de uma Vistoria.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        aprovar_vistoria_no_dominio(
+            homologacao=homologacao,
+            codigo_vistoria=codigo_vistoria,
+            data_resultado=data_resultado,
+            responsavel_resultado=(
+                responsavel_resultado
+            ),
+            data_movimentacao=data_movimentacao,
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def reprovar_vistoria_homologacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    codigo_vistoria: int,
+    data_resultado: str,
+    responsavel_resultado: str,
+    motivo_reprovacao: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Registra e persiste a reprovação
+    formal de uma Vistoria.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        reprovar_vistoria_no_dominio(
+            homologacao=homologacao,
+            codigo_vistoria=codigo_vistoria,
+            data_resultado=data_resultado,
+            responsavel_resultado=(
+                responsavel_resultado
+            ),
+            motivo_reprovacao=motivo_reprovacao,
+            data_movimentacao=data_movimentacao,
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def registrar_correcao_pos_vistoria_homologacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    codigo_vistoria: int,
+    descricao_correcao: str,
+    responsavel_correcao: str,
+    data_movimentacao: str,
+) -> dict[str, Any]:
+    """
+    Registra e persiste a correção realizada
+    após uma Vistoria reprovada.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        registrar_correcao_pos_vistoria_no_dominio(
+            homologacao=homologacao,
+            codigo_vistoria=codigo_vistoria,
+            descricao_correcao=descricao_correcao,
+            responsavel_correcao=(
+                responsavel_correcao
+            ),
+            data_movimentacao=data_movimentacao,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+

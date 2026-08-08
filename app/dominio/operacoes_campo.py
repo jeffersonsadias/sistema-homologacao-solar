@@ -34,6 +34,20 @@ class StatusInstalacao(str, Enum):
     EM_EXECUCAO = "EM_EXECUCAO"
     CONCLUIDA = "CONCLUIDA"
 
+class StatusVistoria(str, Enum):
+    """
+    Estados internos de uma Vistoria.
+
+    Esses estados detalham a execução da Vistoria
+    e não substituem o status geral da Homologação.
+    """
+
+    SOLICITADA = "SOLICITADA"
+    AGENDADA = "AGENDADA"
+    REALIZADA = "REALIZADA"
+    APROVADA = "APROVADA"
+    REPROVADA = "REPROVADA"
+
 def _validar_texto_obrigatorio(
     valor: str,
     nome_campo: str,
@@ -112,6 +126,65 @@ def _validar_data_iso(
 
     return data_convertida.isoformat()
 
+def gerar_proximo_codigo_vistoria(
+    vistorias: list[dict],
+) -> int:
+    """
+    Gera o próximo código interno das Vistorias
+    pertencentes à mesma Homologação.
+
+    Quando a lista estiver vazia, retorna 1.
+    """
+
+    if not isinstance(
+        vistorias,
+        list,
+    ):
+        raise TypeError(
+            "Vistorias devem formar uma lista."
+        )
+
+    if not vistorias:
+        return 1
+
+    maior_codigo = max(
+        vistoria.get("codigo", 0)
+        for vistoria in vistorias
+    )
+
+    return maior_codigo + 1
+
+def gerar_proximo_numero_sequencial_vistoria(
+    vistorias: list[dict],
+) -> int:
+    """
+    Gera o número sequencial da próxima tentativa
+    de Vistoria da Homologação.
+
+    O primeiro registro recebe número sequencial 1.
+    """
+
+    if not isinstance(
+        vistorias,
+        list,
+    ):
+        raise TypeError(
+            "Vistorias devem formar uma lista."
+        )
+
+    if not vistorias:
+        return 1
+
+    maior_numero = max(
+        vistoria.get(
+            "numero_sequencial",
+            0,
+        )
+        for vistoria in vistorias
+    )
+
+    return maior_numero + 1
+
 def criar_dados_operacoes_campo() -> dict:
     """
     Cria a estrutura inicial das Operações de Campo.
@@ -186,6 +259,13 @@ def validar_operacoes_campo(
             "Vistorias devem formar uma lista."
         )
 
+    for vistoria in operacoes_campo[
+        "vistorias"
+    ]:
+        validar_vistoria(
+            vistoria
+        )
+
     ligacao = operacoes_campo[
         "ligacao"
     ]
@@ -201,6 +281,884 @@ def validar_operacoes_campo(
             "Ligação deve ser um dicionário "
             "ou None."
         )
+
+def criar_dados_vistoria_solicitada(
+    codigo: int,
+    numero_sequencial: int,
+    data_solicitacao: str,
+    responsavel_solicitacao: str,
+    protocolo: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Cria uma nova Vistoria com status SOLICITADA.
+
+    Dados de agendamento, realização e resultado
+    permanecem ausentes até os respectivos eventos.
+    """
+
+    if (
+        isinstance(codigo, bool)
+        or not isinstance(
+            codigo,
+            int,
+        )
+    ):
+        raise TypeError(
+            "Código da Vistoria deve ser "
+            "um número inteiro."
+        )
+
+    if codigo <= 0:
+        raise ValueError(
+            "Código da Vistoria deve ser "
+            "maior que zero."
+        )
+
+    if (
+        isinstance(numero_sequencial, bool)
+        or not isinstance(
+            numero_sequencial,
+            int,
+        )
+    ):
+        raise TypeError(
+            "Número sequencial da Vistoria deve "
+            "ser um número inteiro."
+        )
+
+    if numero_sequencial <= 0:
+        raise ValueError(
+            "Número sequencial da Vistoria deve "
+            "ser maior que zero."
+        )
+
+    data_normalizada = _validar_data_iso(
+        data_solicitacao,
+        "Data de solicitação da Vistoria",
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_solicitacao,
+            "Responsável pela solicitação",
+        )
+    )
+
+    protocolo_normalizado = (
+        _validar_texto_obrigatorio(
+            protocolo,
+            "Protocolo da Vistoria",
+        )
+    )
+
+    observacoes_normalizadas = (
+        _normalizar_texto_opcional(
+            observacoes,
+            "Observações da Vistoria",
+        )
+    )
+
+    return {
+        "codigo": codigo,
+        "numero_sequencial": numero_sequencial,
+        "status": StatusVistoria.SOLICITADA.value,
+        "data_solicitacao": data_normalizada,
+        "responsavel_solicitacao": (
+            responsavel_normalizado
+        ),
+        "protocolo": protocolo_normalizado,
+        "data_agendamento": None,
+        "responsavel_agendamento": None,
+        "data_realizacao": None,
+        "responsavel_realizacao": None,
+        "data_resultado": None,
+        "responsavel_resultado": None,
+        "resultado": None,
+        "motivo_reprovacao": None,
+        "observacoes": observacoes_normalizadas,
+    }
+
+def validar_vistoria(
+    vistoria: dict,
+) -> None:
+    """
+    Valida a estrutura e a coerência interna
+    de uma Vistoria.
+
+    Estados considerados:
+
+    - SOLICITADA;
+    - AGENDADA;
+    - REALIZADA;
+    - APROVADA;
+    - REPROVADA.
+    """
+
+    if not isinstance(
+        vistoria,
+        dict,
+    ):
+        raise TypeError(
+            "Vistoria deve ser representada "
+            "por um dicionário."
+        )
+
+    campos_obrigatorios = (
+        "codigo",
+        "numero_sequencial",
+        "status",
+        "data_solicitacao",
+        "responsavel_solicitacao",
+        "protocolo",
+        "data_agendamento",
+        "responsavel_agendamento",
+        "data_realizacao",
+        "responsavel_realizacao",
+        "data_resultado",
+        "responsavel_resultado",
+        "resultado",
+        "motivo_reprovacao",
+        "observacoes",
+    )
+
+    for campo in campos_obrigatorios:
+        if campo not in vistoria:
+            raise ValueError(
+                "Estrutura de Vistoria inválida: "
+                f"campo ausente: {campo}."
+            )
+
+    codigo = vistoria["codigo"]
+
+    if (
+        isinstance(codigo, bool)
+        or not isinstance(
+            codigo,
+            int,
+        )
+    ):
+        raise TypeError(
+            "Código da Vistoria deve ser "
+            "um número inteiro."
+        )
+
+    if codigo <= 0:
+        raise ValueError(
+            "Código da Vistoria deve ser "
+            "maior que zero."
+        )
+
+    numero_sequencial = vistoria[
+        "numero_sequencial"
+    ]
+
+    if (
+        isinstance(numero_sequencial, bool)
+        or not isinstance(
+            numero_sequencial,
+            int,
+        )
+    ):
+        raise TypeError(
+            "Número sequencial da Vistoria deve "
+            "ser um número inteiro."
+        )
+
+    if numero_sequencial <= 0:
+        raise ValueError(
+            "Número sequencial da Vistoria deve "
+            "ser maior que zero."
+        )
+
+    try:
+        status_vistoria = StatusVistoria(
+            vistoria["status"]
+        )
+
+    except (
+        ValueError,
+        TypeError,
+    ) as erro:
+        raise ValueError(
+            "Status de Vistoria inválido: "
+            f"{vistoria.get('status')!r}."
+        ) from erro
+
+    _validar_data_iso(
+        vistoria["data_solicitacao"],
+        "Data de solicitação da Vistoria",
+    )
+
+    _validar_texto_obrigatorio(
+        vistoria["responsavel_solicitacao"],
+        "Responsável pela solicitação",
+    )
+
+    _validar_texto_obrigatorio(
+        vistoria["protocolo"],
+        "Protocolo da Vistoria",
+    )
+
+    _normalizar_texto_opcional(
+        vistoria["observacoes"],
+        "Observações da Vistoria",
+    )
+
+    if status_vistoria == StatusVistoria.SOLICITADA:
+        if any(
+            valor is not None
+            for valor in (
+                vistoria["data_agendamento"],
+                vistoria[
+                    "responsavel_agendamento"
+                ],
+                vistoria["data_realizacao"],
+                vistoria[
+                    "responsavel_realizacao"
+                ],
+                vistoria["data_resultado"],
+                vistoria[
+                    "responsavel_resultado"
+                ],
+                vistoria["resultado"],
+                vistoria["motivo_reprovacao"],
+            )
+        ):
+            raise ValueError(
+                "Uma Vistoria solicitada não pode "
+                "possuir dados de agendamento, "
+                "realização ou resultado."
+            )
+
+    elif status_vistoria == StatusVistoria.AGENDADA:
+        _validar_data_iso(
+            vistoria["data_agendamento"],
+            "Data de agendamento da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_agendamento"
+            ],
+            "Responsável pelo agendamento",
+        )
+
+        if any(
+            valor is not None
+            for valor in (
+                vistoria["data_realizacao"],
+                vistoria[
+                    "responsavel_realizacao"
+                ],
+                vistoria["data_resultado"],
+                vistoria[
+                    "responsavel_resultado"
+                ],
+                vistoria["resultado"],
+                vistoria["motivo_reprovacao"],
+            )
+        ):
+            raise ValueError(
+                "Uma Vistoria agendada não pode "
+                "possuir dados de realização "
+                "ou resultado."
+            )
+
+    elif status_vistoria == StatusVistoria.REALIZADA:
+        _validar_data_iso(
+            vistoria["data_agendamento"],
+            "Data de agendamento da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_agendamento"
+            ],
+            "Responsável pelo agendamento",
+        )
+
+        _validar_data_iso(
+            vistoria["data_realizacao"],
+            "Data de realização da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_realizacao"
+            ],
+            "Responsável pela realização",
+        )
+
+        if any(
+            valor is not None
+            for valor in (
+                vistoria["data_resultado"],
+                vistoria[
+                    "responsavel_resultado"
+                ],
+                vistoria["resultado"],
+                vistoria["motivo_reprovacao"],
+            )
+        ):
+            raise ValueError(
+                "Uma Vistoria realizada e ainda sem "
+                "resultado não pode possuir dados "
+                "do resultado formal."
+            )
+
+    elif status_vistoria == StatusVistoria.APROVADA:
+        _validar_data_iso(
+            vistoria["data_agendamento"],
+            "Data de agendamento da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_agendamento"
+            ],
+            "Responsável pelo agendamento",
+        )
+
+        _validar_data_iso(
+            vistoria["data_realizacao"],
+            "Data de realização da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_realizacao"
+            ],
+            "Responsável pela realização",
+        )
+
+        _validar_data_iso(
+            vistoria["data_resultado"],
+            "Data do resultado da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_resultado"
+            ],
+            "Responsável pelo resultado",
+        )
+
+        if vistoria["resultado"] != "APROVADA":
+            raise ValueError(
+                "Uma Vistoria aprovada deve possuir "
+                "resultado APROVADA."
+            )
+
+        if vistoria["motivo_reprovacao"] is not None:
+            raise ValueError(
+                "Uma Vistoria aprovada não pode possuir "
+                "motivo de reprovação."
+            )
+
+    elif status_vistoria == StatusVistoria.REPROVADA:
+        _validar_data_iso(
+            vistoria["data_agendamento"],
+            "Data de agendamento da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_agendamento"
+            ],
+            "Responsável pelo agendamento",
+        )
+
+        _validar_data_iso(
+            vistoria["data_realizacao"],
+            "Data de realização da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_realizacao"
+            ],
+            "Responsável pela realização",
+        )
+
+        _validar_data_iso(
+            vistoria["data_resultado"],
+            "Data do resultado da Vistoria",
+        )
+
+        _validar_texto_obrigatorio(
+            vistoria[
+                "responsavel_resultado"
+            ],
+            "Responsável pelo resultado",
+        )
+
+        if vistoria["resultado"] != "REPROVADA":
+            raise ValueError(
+                "Uma Vistoria reprovada deve possuir "
+                "resultado REPROVADA."
+            )
+
+        _validar_texto_obrigatorio(
+            vistoria["motivo_reprovacao"],
+            "Motivo da reprovação",
+        )
+
+def buscar_vistoria_por_codigo(
+    vistorias: list[dict],
+    codigo: int,
+) -> dict | None:
+    """
+    Busca uma Vistoria por seu código interno.
+    """
+
+    for vistoria in vistorias:
+        if vistoria.get("codigo") == codigo:
+            return vistoria
+
+    return None
+
+def buscar_vistoria_por_numero_sequencial(
+    vistorias: list[dict],
+    numero_sequencial: int,
+) -> dict | None:
+    """
+    Busca uma tentativa de Vistoria
+    por seu número sequencial.
+    """
+
+    for vistoria in vistorias:
+        if (
+            vistoria.get("numero_sequencial")
+            == numero_sequencial
+        ):
+            return vistoria
+
+    return None
+
+def buscar_ultima_vistoria(
+    vistorias: list[dict],
+) -> dict | None:
+    """
+    Retorna a Vistoria com o maior
+    número sequencial.
+
+    Retorna None quando a lista estiver vazia.
+    """
+
+    if not vistorias:
+        return None
+
+    return max(
+        vistorias,
+        key=lambda vistoria: vistoria.get(
+            "numero_sequencial",
+            0,
+        ),
+    )
+
+def preparar_agendamento_vistoria(
+    vistoria: dict,
+    data_agendamento: str,
+    responsavel_agendamento: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Prepara uma cópia da Vistoria com seu
+    agendamento registrado.
+
+    A função não modifica a Vistoria recebida.
+    """
+
+    validar_vistoria(
+        vistoria
+    )
+
+    status_atual = StatusVistoria(
+        vistoria["status"]
+    )
+
+    if status_atual != StatusVistoria.SOLICITADA:
+        raise ValueError(
+            "Somente uma Vistoria solicitada "
+            "pode ser agendada."
+        )
+
+    data_agendamento_normalizada = (
+        _validar_data_iso(
+            data_agendamento,
+            "Data de agendamento da Vistoria",
+        )
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_agendamento,
+            "Responsável pelo agendamento",
+        )
+    )
+
+    observacoes_normalizadas = (
+        _normalizar_texto_opcional(
+            observacoes,
+            "Observações da Vistoria",
+        )
+    )
+
+    data_solicitacao_convertida = (
+        date.fromisoformat(
+            vistoria["data_solicitacao"]
+        )
+    )
+
+    data_agendamento_convertida = (
+        date.fromisoformat(
+            data_agendamento_normalizada
+        )
+    )
+
+    if (
+        data_agendamento_convertida
+        < data_solicitacao_convertida
+    ):
+        raise ValueError(
+            "A data de agendamento da Vistoria "
+            "não pode ser anterior à data de solicitação."
+        )
+
+    vistoria_candidata = vistoria.copy()
+
+    vistoria_candidata["status"] = (
+        StatusVistoria.AGENDADA.value
+    )
+
+    vistoria_candidata[
+        "data_agendamento"
+    ] = data_agendamento_normalizada
+
+    vistoria_candidata[
+        "responsavel_agendamento"
+    ] = responsavel_normalizado
+
+    if observacoes is not None:
+        vistoria_candidata["observacoes"] = (
+            observacoes_normalizadas
+        )
+
+    validar_vistoria(
+        vistoria_candidata
+    )
+
+    return vistoria_candidata
+
+def preparar_realizacao_vistoria(
+    vistoria: dict,
+    data_realizacao: str,
+    responsavel_realizacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Prepara uma cópia da Vistoria com sua
+    realização registrada.
+
+    A função não modifica a Vistoria recebida.
+    O resultado permanece ausente até seu
+    registro formal.
+    """
+
+    validar_vistoria(
+        vistoria
+    )
+
+    status_atual = StatusVistoria(
+        vistoria["status"]
+    )
+
+    if status_atual != StatusVistoria.AGENDADA:
+        raise ValueError(
+            "Somente uma Vistoria agendada "
+            "pode ser realizada."
+        )
+
+    data_realizacao_normalizada = (
+        _validar_data_iso(
+            data_realizacao,
+            "Data de realização da Vistoria",
+        )
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_realizacao,
+            "Responsável pela realização",
+        )
+    )
+
+    observacoes_normalizadas = (
+        _normalizar_texto_opcional(
+            observacoes,
+            "Observações da Vistoria",
+        )
+    )
+
+    data_agendamento_convertida = (
+        date.fromisoformat(
+            vistoria["data_agendamento"]
+        )
+    )
+
+    data_realizacao_convertida = (
+        date.fromisoformat(
+            data_realizacao_normalizada
+        )
+    )
+
+    if (
+        data_realizacao_convertida
+        < data_agendamento_convertida
+    ):
+        raise ValueError(
+            "A data de realização da Vistoria "
+            "não pode ser anterior à data agendada."
+        )
+
+    vistoria_candidata = vistoria.copy()
+
+    vistoria_candidata["status"] = (
+        StatusVistoria.REALIZADA.value
+    )
+
+    vistoria_candidata[
+        "data_realizacao"
+    ] = data_realizacao_normalizada
+
+    vistoria_candidata[
+        "responsavel_realizacao"
+    ] = responsavel_normalizado
+
+    if observacoes is not None:
+        vistoria_candidata["observacoes"] = (
+            observacoes_normalizadas
+        )
+
+    validar_vistoria(
+        vistoria_candidata
+    )
+
+    return vistoria_candidata
+
+def preparar_aprovacao_vistoria(
+    vistoria: dict,
+    data_resultado: str,
+    responsavel_resultado: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Prepara uma cópia da Vistoria com
+    o resultado de aprovação.
+
+    A função não modifica a Vistoria recebida.
+    """
+
+    validar_vistoria(
+        vistoria
+    )
+
+    status_atual = StatusVistoria(
+        vistoria["status"]
+    )
+
+    if status_atual != StatusVistoria.REALIZADA:
+        raise ValueError(
+            "Somente uma Vistoria realizada "
+            "pode ser aprovada."
+        )
+
+    data_resultado_normalizada = (
+        _validar_data_iso(
+            data_resultado,
+            "Data do resultado da Vistoria",
+        )
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_resultado,
+            "Responsável pelo resultado",
+        )
+    )
+
+    observacoes_normalizadas = (
+        _normalizar_texto_opcional(
+            observacoes,
+            "Observações da Vistoria",
+        )
+    )
+
+    data_realizacao_convertida = (
+        date.fromisoformat(
+            vistoria["data_realizacao"]
+        )
+    )
+
+    data_resultado_convertida = (
+        date.fromisoformat(
+            data_resultado_normalizada
+        )
+    )
+
+    if (
+        data_resultado_convertida
+        < data_realizacao_convertida
+    ):
+        raise ValueError(
+            "A data do resultado da Vistoria "
+            "não pode ser anterior à realização."
+        )
+
+    vistoria_candidata = vistoria.copy()
+
+    vistoria_candidata["status"] = (
+        StatusVistoria.APROVADA.value
+    )
+
+    vistoria_candidata["data_resultado"] = (
+        data_resultado_normalizada
+    )
+
+    vistoria_candidata[
+        "responsavel_resultado"
+    ] = responsavel_normalizado
+
+    vistoria_candidata["resultado"] = (
+        StatusVistoria.APROVADA.value
+    )
+
+    vistoria_candidata[
+        "motivo_reprovacao"
+    ] = None
+
+    if observacoes is not None:
+        vistoria_candidata["observacoes"] = (
+            observacoes_normalizadas
+        )
+
+    validar_vistoria(
+        vistoria_candidata
+    )
+
+    return vistoria_candidata
+
+def preparar_reprovacao_vistoria(
+    vistoria: dict,
+    data_resultado: str,
+    responsavel_resultado: str,
+    motivo_reprovacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Prepara uma cópia da Vistoria com
+    o resultado de reprovação.
+
+    A reprovação exige motivo obrigatório.
+    A função não modifica a Vistoria recebida.
+    """
+
+    validar_vistoria(
+        vistoria
+    )
+
+    status_atual = StatusVistoria(
+        vistoria["status"]
+    )
+
+    if status_atual != StatusVistoria.REALIZADA:
+        raise ValueError(
+            "Somente uma Vistoria realizada "
+            "pode ser reprovada."
+        )
+
+    data_resultado_normalizada = (
+        _validar_data_iso(
+            data_resultado,
+            "Data do resultado da Vistoria",
+        )
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_resultado,
+            "Responsável pelo resultado",
+        )
+    )
+
+    motivo_normalizado = (
+        _validar_texto_obrigatorio(
+            motivo_reprovacao,
+            "Motivo da reprovação",
+        )
+    )
+
+    observacoes_normalizadas = (
+        _normalizar_texto_opcional(
+            observacoes,
+            "Observações da Vistoria",
+        )
+    )
+
+    data_realizacao_convertida = (
+        date.fromisoformat(
+            vistoria["data_realizacao"]
+        )
+    )
+
+    data_resultado_convertida = (
+        date.fromisoformat(
+            data_resultado_normalizada
+        )
+    )
+
+    if (
+        data_resultado_convertida
+        < data_realizacao_convertida
+    ):
+        raise ValueError(
+            "A data do resultado da Vistoria "
+            "não pode ser anterior à realização."
+        )
+
+    vistoria_candidata = vistoria.copy()
+
+    vistoria_candidata["status"] = (
+        StatusVistoria.REPROVADA.value
+    )
+
+    vistoria_candidata["data_resultado"] = (
+        data_resultado_normalizada
+    )
+
+    vistoria_candidata[
+        "responsavel_resultado"
+    ] = responsavel_normalizado
+
+    vistoria_candidata["resultado"] = (
+        StatusVistoria.REPROVADA.value
+    )
+
+    vistoria_candidata[
+        "motivo_reprovacao"
+    ] = motivo_normalizado
+
+    if observacoes is not None:
+        vistoria_candidata["observacoes"] = (
+            observacoes_normalizadas
+        )
+
+    validar_vistoria(
+        vistoria_candidata
+    )
+
+    return vistoria_candidata
 
 def criar_dados_planejamento_instalacao(
     data_prevista: str,

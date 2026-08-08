@@ -5,6 +5,7 @@ from app.dominio.homologacoes import (
     adicionar_resposta_concessionaria,
     adicionar_resposta_exigencia_concessionaria,
     adicionar_submissao_homologacao,
+    agendar_vistoria,
     alterar_status_documento_homologacao,
     alterar_status_homologacao,
     alterar_status_operacional_submissao,
@@ -33,6 +34,11 @@ from app.dominio.homologacoes import (
     quantidade_homologacoes_sem_responsavel,
     quantidade_total_pendencias_homologacao,
     registrar_planejamento_instalacao,
+    registrar_realizacao_vistoria,
+    registrar_correcao_pos_vistoria,
+    solicitar_vistoria,
+    aprovar_vistoria,
+    reprovar_vistoria,
 )
 
 from app.dominio.documentos_homologacao import (
@@ -67,6 +73,10 @@ from app.dominio.status_homologacao import (
 from app.dominio.status_submissao import (
     StatusAnaliseSubmissao,
     StatusOperacionalSubmissao,
+)
+
+from app.dominio.operacoes_campo import (
+    StatusVistoria,
 )
 
 class TestHomologacoesDominio(unittest.TestCase):
@@ -6857,6 +6867,1207 @@ class TestHomologacoesDominio(unittest.TestCase):
                 ]
             ),
             quantidade_movimentacoes_antes,
+        )
+
+    # ========================================================
+    # OPERAÇÕES DE CAMPO — VISTORIA
+    # ========================================================
+
+    def _preparar_instalacao_concluida(
+        self,
+    ):
+        """
+        Prepara uma Homologação com
+        Instalação integralmente concluída.
+        """
+
+        self._iniciar_instalacao_valida()
+
+        concluir_instalacao(
+            homologacao=self.homologacao_ativa,
+            data_conclusao="2026-08-22",
+            responsavel_conclusao=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-08-22",
+        )
+
+    def _solicitar_vistoria_valida(
+        self,
+    ):
+        """
+        Prepara a Instalação concluída e registra
+        uma solicitação válida de Vistoria.
+        """
+
+        self._preparar_instalacao_concluida()
+
+        solicitar_vistoria(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-08-25",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="VST-2026-001",
+            data_movimentacao="2026-08-25",
+        )
+
+    def _agendar_vistoria_valida(
+        self,
+    ):
+        """
+        Solicita e agenda uma Vistoria válida.
+        """
+
+        self._solicitar_vistoria_valida()
+
+        agendar_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_agendamento="2026-08-30",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-08-26",
+        )
+
+    def _realizar_vistoria_valida(
+        self,
+    ):
+        """
+        Solicita, agenda e registra
+        a realização de uma Vistoria válida.
+        """
+
+        self._agendar_vistoria_valida()
+
+        registrar_realizacao_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "Marcos Oliveira"
+            ),
+            data_movimentacao="2026-08-30",
+        )
+
+    def _reprovar_vistoria_valida(
+        self,
+    ):
+        """
+        Prepara uma Vistoria completa
+        e registra sua reprovação.
+        """
+
+        self._realizar_vistoria_valida()
+
+        reprovar_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            motivo_reprovacao=(
+                "Inversor sem identificação."
+            ),
+            data_movimentacao="2026-09-01",
+        )
+
+    def test_solicitar_primeira_vistoria(
+        self,
+    ):
+        """
+        Deve criar a primeira Vistoria, atualizar
+        o status e registrar uma Movimentação.
+        """
+
+        self._preparar_instalacao_concluida()
+
+        resultado = solicitar_vistoria(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-08-25",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="VST-2026-001",
+            data_movimentacao="2026-08-25",
+            observacoes="Primeira vistoria.",
+        )
+
+        vistorias = resultado[
+            "operacoes_campo"
+        ]["vistorias"]
+
+        self.assertEqual(
+            len(vistorias),
+            1,
+        )
+
+        vistoria = vistorias[0]
+
+        self.assertEqual(
+            vistoria["codigo"],
+            1,
+        )
+
+        self.assertEqual(
+            vistoria["numero_sequencial"],
+            1,
+        )
+
+        self.assertEqual(
+            vistoria["status"],
+            StatusVistoria.SOLICITADA.value,
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .VISTORIA_SOLICITADA
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["responsavel_atual"],
+            "Ana Lima",
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "VISTORIA_SOLICITADA",
+        )
+
+    def test_solicitacao_vistoria_exige_instalacao_concluida(
+        self,
+    ):
+        """
+        Não deve ser possível solicitar Vistoria
+        antes da conclusão da Instalação.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "após a conclusão",
+        ):
+            solicitar_vistoria(
+                homologacao=self.homologacao_ativa,
+                data_solicitacao="2026-08-25",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+                data_movimentacao="2026-08-25",
+            )
+
+    def test_nao_deve_solicitar_duas_primeiras_vistorias(
+        self,
+    ):
+        """
+        Uma nova solicitação não pode ocorrer enquanto
+        a tentativa atual ainda estiver aberta.
+        """
+
+        self._preparar_instalacao_concluida()
+
+        solicitar_vistoria(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-08-25",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="VST-2026-001",
+            data_movimentacao="2026-08-25",
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            solicitar_vistoria(
+                homologacao=self.homologacao_ativa,
+                data_solicitacao="2026-08-26",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-002",
+                data_movimentacao="2026-08-26",
+            )
+
+    def test_solicitacao_deve_normalizar_registro_antigo(
+        self,
+    ):
+        """
+        Uma Homologação antiga sem operacoes_campo
+        deve receber a estrutura somente depois
+        da validação completa.
+        """
+
+        self.homologacao_ativa.pop(
+            "operacoes_campo",
+            None,
+        )
+
+        self.homologacao_ativa["status"] = (
+            StatusHomologacao
+            .INSTALACAO_CONCLUIDA
+            .value
+        )
+
+        solicitar_vistoria(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-08-25",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="VST-2026-001",
+            data_movimentacao="2026-08-25",
+        )
+
+        self.assertIn(
+            "operacoes_campo",
+            self.homologacao_ativa,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "operacoes_campo"
+                ]["vistorias"]
+            ),
+            1,
+        )
+
+    def test_falha_na_solicitacao_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma falha na criação da Vistoria não deve
+        aplicar alterações parciais à Homologação.
+        """
+
+        self._preparar_instalacao_concluida()
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        responsavel_antes = (
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ]
+        )
+
+        quantidade_vistorias_antes = len(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            solicitar_vistoria(
+                homologacao=self.homologacao_ativa,
+                data_solicitacao="25/08/2026",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="VST-2026-001",
+                data_movimentacao="2026-08-25",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ],
+            responsavel_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "operacoes_campo"
+                ]["vistorias"]
+            ),
+            quantidade_vistorias_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def _solicitar_vistoria_valida(
+        self,
+    ):
+        """
+        Prepara a Instalação concluída e registra
+        uma solicitação válida de Vistoria.
+        """
+
+        self._preparar_instalacao_concluida()
+
+        solicitar_vistoria(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-08-25",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="VST-2026-001",
+            data_movimentacao="2026-08-25",
+        )
+
+    def test_agendamento_exige_vistoria_existente(
+        self,
+    ):
+        """
+        O agendamento deve exigir uma Vistoria
+        existente na Homologação.
+        """
+
+        self._solicitar_vistoria_valida()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não encontrada",
+        ):
+            agendar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=999,
+                data_agendamento="2026-08-30",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-26",
+            )
+
+    def test_agendamento_exige_status_vistoria_solicitada(
+        self,
+    ):
+        """
+        A Homologação deve possuir uma solicitação
+        de Vistoria aberta.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "solicitação",
+        ):
+            agendar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_agendamento="2026-08-30",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-26",
+            )
+
+    def test_nao_deve_agendar_vistoria_duas_vezes(
+        self,
+    ):
+        """
+        Uma Vistoria agendada não pode
+        ser agendada novamente.
+        """
+
+        self._solicitar_vistoria_valida()
+
+        agendar_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_agendamento="2026-08-30",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-08-26",
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            agendar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_agendamento="2026-08-31",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-27",
+            )
+
+    def test_falha_no_agendamento_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma falha no agendamento deve preservar
+        os dados reais da Vistoria e da Homologação.
+        """
+
+        self._solicitar_vistoria_valida()
+
+        vistoria_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0].copy()
+        )
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        responsavel_antes = (
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            agendar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_agendamento="24/08/2026",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-08-26",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0],
+            vistoria_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ],
+            responsavel_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def test_registrar_realizacao_vistoria(
+        self,
+    ):
+        """
+        Deve registrar a realização da Vistoria
+        sem alterar o status geral da Homologação.
+        """
+
+        self._agendar_vistoria_valida()
+
+        resultado = registrar_realizacao_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "Marcos Oliveira"
+            ),
+            data_movimentacao="2026-08-30",
+            observacoes=(
+                "Vistoria realizada no local."
+            ),
+        )
+
+        vistoria = resultado[
+            "operacoes_campo"
+        ]["vistorias"][0]
+
+        self.assertEqual(
+            vistoria["status"],
+            StatusVistoria.REALIZADA.value,
+        )
+
+        self.assertEqual(
+            vistoria["data_realizacao"],
+            "2026-08-30",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .AGUARDANDO_VISTORIA
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["responsavel_atual"],
+            "Marcos Oliveira",
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "VISTORIA_REALIZADA",
+        )
+
+    def test_realizacao_exige_vistoria_existente(
+        self,
+    ):
+        """
+        A realização deve exigir uma Vistoria
+        existente.
+        """
+
+        self._agendar_vistoria_valida()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não encontrada",
+        ):
+            registrar_realizacao_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=999,
+                data_realizacao="2026-08-30",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+                data_movimentacao="2026-08-30",
+            )
+
+    def test_realizacao_exige_status_aguardando_vistoria(
+        self,
+    ):
+        """
+        A Homologação deve estar aguardando
+        a realização da Vistoria.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "aguardando",
+        ):
+            registrar_realizacao_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_realizacao="2026-08-30",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+                data_movimentacao="2026-08-30",
+            )
+
+    def test_nao_deve_realizar_vistoria_duas_vezes(
+        self,
+    ):
+        """
+        Uma Vistoria já realizada não pode
+        receber nova realização.
+        """
+
+        self._agendar_vistoria_valida()
+
+        registrar_realizacao_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_realizacao="2026-08-30",
+            responsavel_realizacao=(
+                "Marcos Oliveira"
+            ),
+            data_movimentacao="2026-08-30",
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "agendada",
+        ):
+            registrar_realizacao_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_realizacao="2026-08-31",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+                data_movimentacao="2026-08-31",
+            )
+
+    def test_falha_na_realizacao_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma falha na realização deve preservar
+        a Vistoria e a Homologação reais.
+        """
+
+        self._agendar_vistoria_valida()
+
+        vistoria_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0].copy()
+        )
+
+        responsavel_antes = (
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            registrar_realizacao_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_realizacao="29/08/2026",
+                responsavel_realizacao=(
+                    "Marcos Oliveira"
+                ),
+                data_movimentacao="2026-08-30",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0],
+            vistoria_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ],
+            responsavel_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def test_aprovar_vistoria(
+        self,
+    ):
+        """
+        Deve aprovar a Vistoria e atualizar
+        o estado geral da Homologação.
+        """
+
+        self._realizar_vistoria_valida()
+
+        resultado = aprovar_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            data_movimentacao="2026-09-01",
+            observacoes="Vistoria aprovada.",
+        )
+
+        vistoria = resultado[
+            "operacoes_campo"
+        ]["vistorias"][0]
+
+        self.assertEqual(
+            vistoria["status"],
+            StatusVistoria.APROVADA.value,
+        )
+
+        self.assertEqual(
+            vistoria["resultado"],
+            "APROVADA",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .VISTORIA_APROVADA
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["responsavel_atual"],
+            "Ana Lima",
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "VISTORIA_APROVADA",
+        )
+
+    def test_reprovar_vistoria(
+        self,
+    ):
+        """
+        Deve reprovar a Vistoria, registrar
+        o motivo e atualizar a Homologação.
+        """
+
+        self._realizar_vistoria_valida()
+
+        resultado = reprovar_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            motivo_reprovacao=(
+                "Inversor sem identificação."
+            ),
+            data_movimentacao="2026-09-01",
+        )
+
+        vistoria = resultado[
+            "operacoes_campo"
+        ]["vistorias"][0]
+
+        self.assertEqual(
+            vistoria["status"],
+            StatusVistoria.REPROVADA.value,
+        )
+
+        self.assertEqual(
+            vistoria["resultado"],
+            "REPROVADA",
+        )
+
+        self.assertEqual(
+            vistoria["motivo_reprovacao"],
+            "Inversor sem identificação.",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .VISTORIA_REPROVADA
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "VISTORIA_REPROVADA",
+        )
+
+    def test_resultado_exige_vistoria_existente(
+        self,
+    ):
+        """
+        O resultado deve exigir uma Vistoria
+        existente na Homologação.
+        """
+
+        self._realizar_vistoria_valida()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não encontrada",
+        ):
+            aprovar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=999,
+                data_resultado="2026-09-01",
+                responsavel_resultado="Ana Lima",
+                data_movimentacao="2026-09-01",
+            )
+
+    def test_aprovacao_exige_vistoria_realizada(
+        self,
+    ):
+        """
+        Uma Vistoria apenas agendada
+        não pode ser aprovada.
+        """
+
+        self._agendar_vistoria_valida()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "realizada",
+        ):
+            aprovar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_resultado="2026-09-01",
+                responsavel_resultado="Ana Lima",
+                data_movimentacao="2026-09-01",
+            )
+
+    def test_nao_deve_registrar_resultado_duas_vezes(
+        self,
+    ):
+        """
+        Uma Vistoria já aprovada não pode
+        receber outro resultado.
+        """
+
+        self._realizar_vistoria_valida()
+
+        aprovar_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            data_movimentacao="2026-09-01",
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            reprovar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_resultado="2026-09-02",
+                responsavel_resultado="Ana Lima",
+                motivo_reprovacao="Novo motivo.",
+                data_movimentacao="2026-09-02",
+            )
+
+    def test_falha_na_aprovacao_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma falha na aprovação deve preservar
+        a Vistoria e a Homologação reais.
+        """
+
+        self._realizar_vistoria_valida()
+
+        vistoria_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0].copy()
+        )
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            aprovar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_resultado="29/08/2026",
+                responsavel_resultado="Ana Lima",
+                data_movimentacao="2026-09-01",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0],
+            vistoria_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def test_falha_na_reprovacao_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma reprovação inválida deve preservar
+        integralmente a Homologação.
+        """
+
+        self._realizar_vistoria_valida()
+
+        vistoria_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0].copy()
+        )
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            reprovar_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                data_resultado="2026-09-01",
+                responsavel_resultado="Ana Lima",
+                motivo_reprovacao=" ",
+                data_movimentacao="2026-09-01",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0],
+            vistoria_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def test_registrar_correcao_pos_vistoria(
+        self,
+    ):
+        """
+        Deve registrar a correção sem alterar
+        a Vistoria reprovada.
+        """
+
+        self._reprovar_vistoria_valida()
+
+        vistoria_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0].copy()
+        )
+
+        resultado = (
+            registrar_correcao_pos_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                descricao_correcao=(
+                    "Identificação do inversor instalada."
+                ),
+                responsavel_correcao=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-09-03",
+            )
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .CORRECAO_POS_VISTORIA
+            .value,
+        )
+
+        self.assertEqual(
+            resultado[
+                "operacoes_campo"
+            ]["vistorias"][0],
+            vistoria_antes,
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "CORRECAO_POS_VISTORIA",
+        )
+
+    def test_correcao_exige_vistoria_reprovada(
+        self,
+    ):
+        """
+        A correção não pode ser registrada
+        sem uma reprovação anterior.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "reprovada",
+        ):
+            registrar_correcao_pos_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                descricao_correcao=(
+                    "Correção executada."
+                ),
+                responsavel_correcao=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-09-03",
+            )
+
+    def test_falha_na_correcao_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma correção inválida deve preservar
+        integralmente a Homologação.
+        """
+
+        self._reprovar_vistoria_valida()
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            registrar_correcao_pos_vistoria(
+                homologacao=self.homologacao_ativa,
+                codigo_vistoria=1,
+                descricao_correcao=" ",
+                responsavel_correcao=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-09-03",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def test_deve_criar_segunda_vistoria_apos_correcao(
+        self,
+    ):
+        """
+        Após reprovação e correção, uma nova solicitação
+        deve criar uma segunda Vistoria sem alterar
+        a primeira.
+        """
+
+        self._reprovar_vistoria_valida()
+
+        registrar_correcao_pos_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            descricao_correcao=(
+                "Identificação do inversor instalada."
+            ),
+            responsavel_correcao="Carlos Souza",
+            data_movimentacao="2026-09-03",
+        )
+
+        primeira_vistoria_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["vistorias"][0].copy()
+        )
+
+        solicitar_vistoria(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-09-05",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="VST-2026-002",
+            data_movimentacao="2026-09-05",
+            observacoes="Segunda tentativa.",
+        )
+
+        vistorias = self.homologacao_ativa[
+            "operacoes_campo"
+        ]["vistorias"]
+
+        self.assertEqual(
+            len(vistorias),
+            2,
+        )
+
+        self.assertEqual(
+            vistorias[0],
+            primeira_vistoria_antes,
+        )
+
+        self.assertEqual(
+            vistorias[0]["status"],
+            StatusVistoria.REPROVADA.value,
+        )
+
+        self.assertEqual(
+            vistorias[1]["codigo"],
+            2,
+        )
+
+        self.assertEqual(
+            vistorias[1]["numero_sequencial"],
+            2,
+        )
+
+        self.assertEqual(
+            vistorias[1]["status"],
+            StatusVistoria.SOLICITADA.value,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            StatusHomologacao
+            .VISTORIA_SOLICITADA
+            .value,
         )
 
 if __name__ == "__main__":
