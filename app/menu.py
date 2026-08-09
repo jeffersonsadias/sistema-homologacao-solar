@@ -18,6 +18,7 @@ from app import utils
 from app.interface import (
     empresas_interface,
     homologacoes_interface,
+    painel_gerencial_interface,
     painel_operacional_interface,
     usuarios_interface,
     vinculos_unidade_projeto_interface,
@@ -110,9 +111,12 @@ def exibir_menu():
     )
 
     print(
-        "0 - Sair"
+        "20 - Painel Gerencial"
     )
 
+    print(
+        "0 - Sair"
+    )
 
 def executar_menu():
     """
@@ -240,6 +244,9 @@ def executar_menu():
 
         elif opcao == "19":
             painel_operacional_interface.exibir_painel_operacional()
+
+        elif opcao == "20":
+            painel_gerencial_interface.menu_painel_gerencial()
 
         elif opcao == "0":
             print(

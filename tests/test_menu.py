@@ -212,6 +212,53 @@ class TestMenuPrincipal(
 
     @patch(
         "app.menu."
+        "painel_gerencial_interface."
+        "menu_painel_gerencial"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "20",
+            "0",
+        ],
+    )
+    def test_abrir_painel_gerencial(
+        self,
+        mock_input,
+        mock_menu_painel,
+    ):
+        """
+        A opção 20 deve abrir
+        o Painel Gerencial.
+        """
+
+        menu.executar_menu()
+
+        (
+            mock_menu_painel
+            .assert_called_once_with()
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    def test_menu_deve_exibir_painel_gerencial(
+        self,
+        mock_print,
+    ):
+        """
+        O menu principal deve apresentar
+        a opção do Painel Gerencial.
+        """
+
+        menu.exibir_menu()
+
+        mock_print.assert_any_call(
+            "20 - Painel Gerencial"
+        )
+
+    @patch(
+        "app.menu."
         "clientes."
         "cadastrar_cliente"
     )
