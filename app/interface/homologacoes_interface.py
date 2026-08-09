@@ -1578,6 +1578,72 @@ def menu_ligacao() -> None:
             _pausar()
 
 # ============================================================
+# ENCERRAMENTO DA HOMOLOGAÇÃO
+# ============================================================
+
+def concluir_homologacao_interface() -> None:
+    """
+    Solicita os dados necessários para
+    encerrar formalmente uma Homologação.
+    """
+
+    _exibir_titulo(
+        "ENCERRAMENTO DA HOMOLOGAÇÃO"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    data_conclusao = input(
+        "Data da conclusão (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_conclusao = input(
+        "Responsável pela conclusão: "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .concluir_homologacao_fachada(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                data_conclusao=data_conclusao,
+                responsavel_conclusao=(
+                    responsavel_conclusao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível concluir "
+            f"a Homologação: {erro}"
+        )
+
+        return
+
+    print(
+        "\nHomologação concluída com sucesso."
+    )
+
+    _exibir_homologacao(
+        homologacao_atualizada
+    )
+
+# ============================================================
 # MENU DE HOMOLOGAÇÕES
 # ============================================================
 
@@ -1618,6 +1684,10 @@ def menu_homologacoes() -> None:
         )
 
         print(
+            "7 - Encerrar Homologação"
+        )
+
+        print(
             "0 - Voltar"
         )
 
@@ -1645,6 +1715,10 @@ def menu_homologacoes() -> None:
 
         elif opcao == "6":
             menu_ligacao()
+
+        elif opcao == "7":
+            concluir_homologacao_interface()
+            _pausar()
 
         elif opcao == "0":
             return

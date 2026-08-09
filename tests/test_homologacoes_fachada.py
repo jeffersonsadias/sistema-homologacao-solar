@@ -1893,6 +1893,125 @@ class TestHomologacoesFachada(unittest.TestCase):
         mock_salvar.assert_not_called()
 
     # ========================================================
+    # ENCERRAMENTO DA HOMOLOGAÇÃO
+    # ========================================================
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "concluir_homologacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_concluir_homologacao_fachada(
+        self,
+        mock_obter,
+        mock_concluir,
+        mock_salvar,
+    ):
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "CONCLUIDA",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_concluir.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .concluir_homologacao_fachada(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_conclusao="2026-09-11",
+                responsavel_conclusao=(
+                    "Ana Lima"
+                ),
+                observacoes=(
+                    "Processo encerrado."
+                ),
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_concluir.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            data_conclusao="2026-09-11",
+            responsavel_conclusao="Ana Lima",
+            observacoes="Processo encerrado.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "concluir_homologacao_no_dominio",
+        side_effect=ValueError(
+            "A Homologação somente pode ser concluída "
+            "quando o sistema estiver ligado."
+        ),
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria",
+        return_value={
+            "codigo": 5,
+            "codigo_empresa": 10,
+        },
+    )
+    def test_falha_no_encerramento_nao_deve_persistir(
+        self,
+        mock_obter,
+        mock_concluir,
+        mock_salvar,
+    ):
+        with self.assertRaisesRegex(
+            ValueError,
+            "sistema estiver ligado",
+        ):
+            (
+                homologacoes
+                .concluir_homologacao_fachada(
+                    codigo_homologacao=5,
+                    codigo_empresa=10,
+                    data_conclusao="2026-09-11",
+                    responsavel_conclusao=(
+                        "Ana Lima"
+                    ),
+                )
+            )
+
+        mock_concluir.assert_called_once()
+        mock_salvar.assert_not_called()
+
+    # ========================================================
     # DEPENDÊNCIAS EXTERNAS
     # ========================================================
 

@@ -21,12 +21,14 @@ from app.dominio.homologacoes import (
     codigo_homologacao_existe,
     concluir_instalacao,
     concluir_ligacao,
+    concluir_homologacao,
     criar_dados_homologacao,
     enviar_submissao_homologacao,
     homologacao_esta_sem_responsavel,
     homologacao_possui_exigencia_aberta,
     homologacao_possui_submissao_aguardando_envio,
     homologacao_possui_submissao_aguardando_resposta,
+    homologacao_pode_ser_concluida,
     iniciar_instalacao,
     projeto_possui_homologacao_ativa,
     protocolar_submissao_homologacao,
@@ -8281,6 +8283,25 @@ class TestHomologacoesDominio(unittest.TestCase):
             data_movimentacao="2026-09-06",
         )
 
+    def _concluir_ligacao_valida(
+        self,
+    ):
+        """
+        Prepara todo o fluxo operacional
+        até o sistema estar ligado.
+        """
+
+        self._agendar_ligacao_valida()
+
+        concluir_ligacao(
+            homologacao=self.homologacao_ativa,
+            data_ligacao="2026-09-10",
+            responsavel_ligacao=(
+                "Equipe da Concessionária"
+            ),
+            data_movimentacao="2026-09-10",
+        )
+
     def test_concluir_ligacao(
         self,
     ):
@@ -8474,6 +8495,173 @@ class TestHomologacoesDominio(unittest.TestCase):
             ),
             quantidade_movimentacoes_antes,
         )
+
+    # ========================================================
+    # ENCERRAMENTO DA HOMOLOGAÇÃO
+    # ========================================================
+
+    def test_homologacao_pode_ser_concluida(
+        self,
+    ):
+        """
+        Uma Homologação com sistema ligado,
+        Ligação concluída e sem Exigências
+        deve poder ser encerrada.
+        """
+
+        self._concluir_ligacao_valida()
+
+        resultado = homologacao_pode_ser_concluida(
+            self.homologacao_ativa
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_homologacao_nao_pode_ser_concluida_antes_da_ligacao(
+        self,
+    ):
+        """
+        Uma Homologação ainda não energizada
+        não pode ser encerrada.
+        """
+
+        resultado = homologacao_pode_ser_concluida(
+            self.homologacao_ativa
+        )
+
+        self.assertFalse(
+            resultado
+        )
+
+    def test_concluir_homologacao(
+        self,
+    ):
+        """
+        Deve encerrar a Homologação após
+        a conclusão integral do fluxo.
+        """
+
+        self._concluir_ligacao_valida()
+
+        resultado = concluir_homologacao(
+            homologacao=self.homologacao_ativa,
+            data_conclusao="2026-09-11",
+            responsavel_conclusao="Ana Lima",
+            observacoes=(
+                "Processo encerrado com sucesso."
+            ),
+        )
+
+        self.assertIs(
+            resultado,
+            self.homologacao_ativa,
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao.CONCLUIDA.value,
+        )
+
+        self.assertEqual(
+            resultado["data_conclusao_real"],
+            "2026-09-11",
+        )
+
+        self.assertEqual(
+            resultado["responsavel_atual"],
+            "Ana Lima",
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "novo_status"
+            ],
+            StatusHomologacao.CONCLUIDA.value,
+        )
+
+    def test_nao_deve_concluir_homologacao_duas_vezes(
+        self,
+    ):
+        """
+        Uma Homologação concluída é terminal
+        e não pode ser concluída novamente.
+        """
+
+        self._concluir_ligacao_valida()
+
+        concluir_homologacao(
+            homologacao=self.homologacao_ativa,
+            data_conclusao="2026-09-11",
+            responsavel_conclusao="Ana Lima",
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            concluir_homologacao(
+                homologacao=self.homologacao_ativa,
+                data_conclusao="2026-09-12",
+                responsavel_conclusao="Ana Lima",
+            )
+
+    def test_falha_no_encerramento_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma falha de validação deve preservar
+        integralmente a Homologação.
+        """
+
+        self._concluir_ligacao_valida()
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        data_conclusao_antes = (
+            self.homologacao_ativa[
+                "data_conclusao_real"
+            ]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            concluir_homologacao(
+                homologacao=self.homologacao_ativa,
+                data_conclusao="11/09/2026",
+                responsavel_conclusao="Ana Lima",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "data_conclusao_real"
+            ],
+            data_conclusao_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

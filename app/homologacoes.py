@@ -36,6 +36,7 @@ from app.dominio.homologacoes import (
     buscar_homologacoes_por_status,
     concluir_instalacao,
     concluir_ligacao,
+    concluir_homologacao,
     criar_dados_homologacao,
     iniciar_instalacao,
     projeto_possui_homologacao_ativa,
@@ -127,6 +128,10 @@ agendar_ligacao_no_dominio = (
 
 concluir_ligacao_no_dominio = (
     concluir_ligacao
+)
+
+concluir_homologacao_no_dominio = (
+    concluir_homologacao
 )
 
 # ============================================================
@@ -927,3 +932,40 @@ def concluir_ligacao_homologacao(
     _salvar_alteracoes()
 
     return homologacao_atualizada
+
+# ============================================================
+# ENCERRAMENTO DA HOMOLOGAÇÃO
+# ============================================================
+
+def concluir_homologacao_fachada(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    data_conclusao: str,
+    responsavel_conclusao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Encerra e persiste formalmente
+    uma Homologação.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        concluir_homologacao_no_dominio(
+            homologacao=homologacao,
+            data_conclusao=data_conclusao,
+            responsavel_conclusao=(
+                responsavel_conclusao
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+

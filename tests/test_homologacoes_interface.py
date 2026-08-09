@@ -1736,6 +1736,164 @@ class TestHomologacoesInterface(
         mock_menu_ligacao.assert_called_once_with()
 
     # ========================================================
+    # TESTES DE ENCERRAMENTO
+    # ========================================================
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.concluir_homologacao_fachada"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-11",
+            "Ana Lima",
+            "Processo encerrado.",
+        ],
+    )
+    def test_concluir_homologacao_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_concluir,
+        mock_exibir,
+    ):
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "CONCLUIDA",
+        }
+
+        mock_concluir.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .concluir_homologacao_interface()
+        )
+
+        mock_concluir.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_conclusao="2026-09-11",
+            responsavel_conclusao="Ana Lima",
+            observacoes="Processo encerrado.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.concluir_homologacao_fachada",
+        side_effect=ValueError(
+            "A Homologação somente pode ser concluída "
+            "quando o sistema estiver ligado."
+        ),
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-11",
+            "Ana Lima",
+            "",
+        ],
+    )
+    def test_encerramento_invalido_exibe_erro(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_concluir,
+        mock_exibir,
+        mock_print,
+    ):
+        (
+            homologacoes_interface
+            .concluir_homologacao_interface()
+        )
+
+        mock_exibir.assert_not_called()
+
+        mock_print.assert_any_call(
+            "\nNão foi possível concluir "
+            "a Homologação: "
+            "A Homologação somente pode ser concluída "
+            "quando o sistema estiver ligado."
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "builtins.input",
+        return_value="0",
+    )
+    def test_menu_homologacoes_deve_exibir_encerramento(
+        self,
+        mock_input,
+        mock_print,
+    ):
+        homologacoes_interface.menu_homologacoes()
+
+        mock_print.assert_any_call(
+            "7 - Encerrar Homologação"
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "concluir_homologacao_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "7",
+            "0",
+        ],
+    )
+    def test_menu_deve_abrir_encerramento(
+        self,
+        mock_input,
+        mock_concluir,
+        mock_pausar,
+    ):
+        homologacoes_interface.menu_homologacoes()
+
+        mock_concluir.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    # ========================================================
     # TESTES GERAIS — MENU DE HOMOLOGAÇÕES
     # ========================================================
 

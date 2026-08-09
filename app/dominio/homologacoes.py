@@ -6038,3 +6038,205 @@ def concluir_ligacao(
     )
 
     return homologacao
+
+# ============================================================
+# ENCERRAMENTO DA HOMOLOGAÇÃO
+# ============================================================
+
+def homologacao_pode_ser_concluida(
+    homologacao: dict,
+) -> bool:
+    """
+    Informa se a Homologação atende às condições
+    necessárias para seu encerramento formal.
+
+    Para ser concluída, a Homologação deve:
+
+    - estar em SISTEMA_LIGADO;
+    - possuir Ligação registrada;
+    - possuir Ligação localmente CONCLUIDA;
+    - não possuir Exigências abertas.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = _converter_status_homologacao(
+        homologacao.get("status")
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao.SISTEMA_LIGADO
+    ):
+        return False
+
+    operacoes_campo = homologacao.get(
+        "operacoes_campo"
+    )
+
+    if operacoes_campo is None:
+        return False
+
+    validar_operacoes_campo(
+        operacoes_campo
+    )
+
+    ligacao = operacoes_campo.get(
+        "ligacao"
+    )
+
+    if ligacao is None:
+        return False
+
+    validar_ligacao(
+        ligacao
+    )
+
+    if (
+        ligacao.get("status")
+        != StatusLigacao.CONCLUIDA.value
+    ):
+        return False
+
+    if homologacao_possui_exigencia_aberta(
+        homologacao
+    ):
+        return False
+
+    return True
+
+def concluir_homologacao(
+    homologacao: dict,
+    data_conclusao: str,
+    responsavel_conclusao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Encerra formalmente uma Homologação.
+
+    A operação somente é permitida quando:
+
+    - o sistema já estiver ligado;
+    - a Ligação estiver concluída;
+    - não existirem Exigências abertas.
+
+    O encerramento:
+
+    - altera o estado para CONCLUIDA;
+    - registra data_conclusao_real;
+    - atualiza o responsável atual;
+    - registra uma Movimentação.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível concluir uma "
+                "Homologação em estado terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao.SISTEMA_LIGADO
+    ):
+        raise ValueError(
+            "A Homologação somente pode ser concluída "
+            "quando o sistema estiver ligado."
+        )
+
+    operacoes_campo = homologacao.get(
+        "operacoes_campo"
+    )
+
+    if operacoes_campo is None:
+        raise ValueError(
+            "A Homologação não possui "
+            "Operações de Campo registradas."
+        )
+
+    validar_operacoes_campo(
+        operacoes_campo
+    )
+
+    ligacao = operacoes_campo.get(
+        "ligacao"
+    )
+
+    if ligacao is None:
+        raise ValueError(
+            "A Homologação não possui "
+            "Ligação registrada."
+        )
+
+    validar_ligacao(
+        ligacao
+    )
+
+    if (
+        ligacao.get("status")
+        != StatusLigacao.CONCLUIDA.value
+    ):
+        raise ValueError(
+            "A Homologação somente pode ser concluída "
+            "após a conclusão da Ligação."
+        )
+
+    if homologacao_possui_exigencia_aberta(
+        homologacao
+    ):
+        raise ValueError(
+            "A Homologação não pode ser concluída "
+            "enquanto possuir Exigências abertas."
+        )
+
+    data_normalizada = (
+        _validar_data_iso(
+            data_conclusao,
+            "Data de conclusão da Homologação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_conclusao,
+            "Responsável pela conclusão",
+        )
+    )
+
+    if observacoes is None:
+        observacoes_normalizadas = None
+
+    elif not isinstance(
+        observacoes,
+        str,
+    ):
+        raise TypeError(
+            "Observações da conclusão "
+            "devem ser um texto ou None."
+        )
+
+    else:
+        observacoes_normalizadas = (
+            observacoes.strip() or None
+        )
+
+    return alterar_status_homologacao(
+        homologacao=homologacao,
+        novo_status=StatusHomologacao.CONCLUIDA,
+        data_movimentacao=data_normalizada,
+        responsavel=responsavel_normalizado,
+        descricao=(
+            observacoes_normalizadas
+            or "Homologação concluída após "
+            "Ligação e Energização do sistema."
+        ),
+    )
