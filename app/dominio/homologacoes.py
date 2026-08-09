@@ -117,15 +117,20 @@ from app.dominio.movimentacoes_homologacao import (
     criar_movimentacao_submissao_adicionada,
     criar_movimentacao_submissao_enviada,
     criar_movimentacao_submissao_protocolada,
+    criar_movimentacao_ligacao_agendada,
+    criar_movimentacao_ligacao_concluida,
+    criar_movimentacao_ligacao_solicitada,
 )
 
 from app.dominio.operacoes_campo import (
     StatusVistoria,
+    StatusLigacao,
     buscar_ultima_vistoria,
     buscar_vistoria_por_codigo,
     criar_dados_operacoes_campo,
     criar_dados_planejamento_instalacao,
     criar_dados_vistoria_solicitada,
+    criar_dados_ligacao_solicitada,
     gerar_proximo_codigo_vistoria,
     gerar_proximo_numero_sequencial_vistoria,
     preparar_agendamento_vistoria,
@@ -134,9 +139,12 @@ from app.dominio.operacoes_campo import (
     preparar_realizacao_vistoria,
     preparar_aprovacao_vistoria,
     preparar_reprovacao_vistoria,
+    preparar_agendamento_ligacao,
+    preparar_conclusao_ligacao,
     validar_instalacao,
     validar_operacoes_campo,
     validar_vistoria,
+    validar_ligacao,
 )
 
 # ============================================================
@@ -5587,6 +5595,435 @@ def registrar_correcao_pos_vistoria(
     # ---------------------------------------------------------
     # APLICAÇÃO ATÔMICA
     # ---------------------------------------------------------
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+# ============================================================
+# LIGAÇÃO E ENERGIZAÇÃO
+# ============================================================
+
+def solicitar_ligacao(
+    homologacao: dict,
+    data_solicitacao: str,
+    responsavel_solicitacao: str,
+    protocolo: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra a solicitação da Ligação e Energização.
+
+    A operação:
+
+    1. valida a estrutura da Homologação;
+    2. impede operações em estados terminais;
+    3. exige VISTORIA_APROVADA;
+    4. prepara uma cópia das Operações de Campo;
+    5. impede uma segunda Ligação;
+    6. cria e valida a Ligação candidata;
+    7. valida a transição para AGUARDANDO_LIGACAO;
+    8. prepara a Movimentação;
+    9. aplica as alterações de forma atômica;
+    10. atualiza o responsável atual.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível solicitar Ligação "
+                "em uma Homologação terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .VISTORIA_APROVADA
+    ):
+        raise ValueError(
+            "A Ligação somente pode ser solicitada "
+            "após a aprovação da Vistoria."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    if (
+        operacoes_candidatas.get("ligacao")
+        is not None
+    ):
+        raise ValueError(
+            "A Homologação já possui "
+            "uma Ligação registrada."
+        )
+
+    ligacao_candidata = (
+        criar_dados_ligacao_solicitada(
+            data_solicitacao=data_solicitacao,
+            responsavel_solicitacao=(
+                responsavel_solicitacao
+            ),
+            protocolo=protocolo,
+            observacoes=observacoes,
+        )
+    )
+
+    validar_ligacao(
+        ligacao_candidata
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_solicitacao,
+            "Responsável pela solicitação",
+        )
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .AGUARDANDO_LIGACAO
+    )
+
+    if not transicao_status_homologacao_e_valida(
+        status_atual,
+        novo_status,
+    ):
+        raise ValueError(
+            "A transição para Aguardando Ligação "
+            "não é permitida."
+        )
+
+    operacoes_candidatas["ligacao"] = (
+        ligacao_candidata
+    )
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_ligacao_solicitada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            ligacao=ligacao_candidata,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["status"] = (
+        novo_status.value
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def agendar_ligacao(
+    homologacao: dict,
+    data_agendamento: str,
+    responsavel_agendamento: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra o agendamento da Ligação.
+
+    O estado geral da Homologação permanece
+    AGUARDANDO_LIGACAO.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível agendar Ligação "
+                "em uma Homologação terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .AGUARDANDO_LIGACAO
+    ):
+        raise ValueError(
+            "A Ligação somente pode ser agendada "
+            "quando a Homologação estiver "
+            "aguardando Ligação."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    ligacao_atual = operacoes_candidatas.get(
+        "ligacao"
+    )
+
+    if ligacao_atual is None:
+        raise ValueError(
+            "Nenhuma Ligação foi solicitada "
+            "para a Homologação."
+        )
+
+    validar_ligacao(
+        ligacao_atual
+    )
+
+    ligacao_candidata = (
+        preparar_agendamento_ligacao(
+            ligacao=ligacao_atual,
+            data_agendamento=data_agendamento,
+            responsavel_agendamento=(
+                responsavel_agendamento
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_agendamento,
+            "Responsável pelo agendamento",
+        )
+    )
+
+    operacoes_candidatas["ligacao"] = (
+        ligacao_candidata
+    )
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_ligacao_agendada(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            ligacao=ligacao_candidata,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
+
+    homologacao["responsavel_atual"] = (
+        responsavel_normalizado
+    )
+
+    homologacao["movimentacoes"].append(
+        movimentacao
+    )
+
+    return homologacao
+
+def concluir_ligacao(
+    homologacao: dict,
+    data_ligacao: str,
+    responsavel_ligacao: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Registra a conclusão da Ligação
+    e a Energização do sistema.
+
+    A Homologação avança de
+    AGUARDANDO_LIGACAO para SISTEMA_LIGADO.
+    """
+
+    _validar_estrutura_homologacao(
+        homologacao
+    )
+
+    status_atual = (
+        _validar_homologacao_nao_terminal(
+            homologacao=homologacao,
+            mensagem_erro=(
+                "Não é possível concluir Ligação "
+                "em uma Homologação terminal."
+            ),
+        )
+    )
+
+    if (
+        status_atual
+        != StatusHomologacao
+        .AGUARDANDO_LIGACAO
+    ):
+        raise ValueError(
+            "A conclusão da Ligação somente pode "
+            "ser registrada quando a Homologação "
+            "estiver aguardando Ligação."
+        )
+
+    operacoes_candidatas = (
+        _preparar_operacoes_campo_candidatas(
+            homologacao
+        )
+    )
+
+    ligacao_atual = operacoes_candidatas.get(
+        "ligacao"
+    )
+
+    if ligacao_atual is None:
+        raise ValueError(
+            "Nenhuma Ligação foi registrada "
+            "para a Homologação."
+        )
+
+    validar_ligacao(
+        ligacao_atual
+    )
+
+    ligacao_candidata = (
+        preparar_conclusao_ligacao(
+            ligacao=ligacao_atual,
+            data_ligacao=data_ligacao,
+            responsavel_ligacao=(
+                responsavel_ligacao
+            ),
+            observacoes=observacoes,
+        )
+    )
+
+    data_movimentacao_normalizada = (
+        _validar_data_iso(
+            data_movimentacao,
+            "Data da movimentação",
+        ).isoformat()
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_ligacao,
+            "Responsável pela Ligação",
+        )
+    )
+
+    novo_status = (
+        StatusHomologacao
+        .SISTEMA_LIGADO
+    )
+
+    if not transicao_status_homologacao_e_valida(
+        status_atual,
+        novo_status,
+    ):
+        raise ValueError(
+            "A transição para Sistema Ligado "
+            "não é permitida."
+        )
+
+    operacoes_candidatas["ligacao"] = (
+        ligacao_candidata
+    )
+
+    validar_operacoes_campo(
+        operacoes_candidatas
+    )
+
+    movimentacao = (
+        criar_movimentacao_ligacao_concluida(
+            movimentacoes=(
+                homologacao["movimentacoes"]
+            ),
+            ligacao=ligacao_candidata,
+            status_anterior=status_atual,
+            novo_status=novo_status,
+            data_movimentacao=(
+                data_movimentacao_normalizada
+            ),
+            responsavel=(
+                responsavel_normalizado
+            ),
+        )
+    )
+
+    # ---------------------------------------------------------
+    # APLICAÇÃO ATÔMICA
+    # ---------------------------------------------------------
+
+    homologacao["operacoes_campo"] = (
+        operacoes_candidatas
+    )
 
     homologacao["status"] = (
         novo_status.value

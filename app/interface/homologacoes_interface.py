@@ -274,6 +274,81 @@ def _exibir_vistorias(
 
         print("-" * 60)
 
+def _exibir_ligacao(
+    homologacao: dict[str, Any],
+) -> None:
+    """
+    Exibe os dados da Ligação e Energização
+    registrada nas Operações de Campo.
+    """
+
+    operacoes_campo = homologacao.get(
+        "operacoes_campo"
+    ) or {}
+
+    ligacao = operacoes_campo.get(
+        "ligacao"
+    )
+
+    if ligacao is None:
+        print(
+            "\nNenhuma Ligação registrada."
+        )
+
+        return
+
+    print()
+    print("-" * 60)
+    print("LIGAÇÃO E ENERGIZAÇÃO")
+    print("-" * 60)
+
+    print(
+        f"Status:                    "
+        f"{ligacao.get('status', '-')}"
+    )
+
+    print(
+        f"Data da solicitação:       "
+        f"{ligacao.get('data_solicitacao') or '-'}"
+    )
+
+    print(
+        f"Responsável solicitação:   "
+        f"{ligacao.get('responsavel_solicitacao') or '-'}"
+    )
+
+    print(
+        f"Protocolo:                 "
+        f"{ligacao.get('protocolo') or '-'}"
+    )
+
+    print(
+        f"Data do agendamento:       "
+        f"{ligacao.get('data_agendamento') or '-'}"
+    )
+
+    print(
+        f"Responsável agendamento:   "
+        f"{ligacao.get('responsavel_agendamento') or '-'}"
+    )
+
+    print(
+        f"Data da Ligação:           "
+        f"{ligacao.get('data_ligacao') or '-'}"
+    )
+
+    print(
+        f"Responsável pela Ligação:  "
+        f"{ligacao.get('responsavel_ligacao') or '-'}"
+    )
+
+    print(
+        f"Observações:               "
+        f"{ligacao.get('observacoes') or 'Nenhuma'}"
+    )
+
+    print("-" * 60)
+
 # ============================================================
 # CADASTRO
 # ============================================================
@@ -1229,6 +1304,280 @@ def menu_vistoria() -> None:
             _pausar()
 
 # ============================================================
+# OPERAÇÕES DE CAMPO — LIGAÇÃO E ENERGIZAÇÃO
+# ============================================================
+
+def solicitar_ligacao_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    a solicitação da Ligação e Energização.
+    """
+
+    _exibir_titulo(
+        "SOLICITAÇÃO DE LIGAÇÃO E ENERGIZAÇÃO"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    data_solicitacao = input(
+        "Data da solicitação (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_solicitacao = input(
+        "Responsável pela solicitação: "
+    ).strip()
+
+    protocolo = input(
+        "Protocolo da solicitação: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .solicitar_ligacao_homologacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                data_solicitacao=(
+                    data_solicitacao
+                ),
+                responsavel_solicitacao=(
+                    responsavel_solicitacao
+                ),
+                protocolo=protocolo,
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível solicitar "
+            f"a Ligação: {erro}"
+        )
+
+        return
+
+    print(
+        "\nLigação solicitada com sucesso."
+    )
+
+    _exibir_ligacao(
+        homologacao_atualizada
+    )
+
+def agendar_ligacao_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    o agendamento da Ligação.
+    """
+
+    _exibir_titulo(
+        "AGENDAMENTO DA LIGAÇÃO"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    data_agendamento = input(
+        "Data do agendamento (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_agendamento = input(
+        "Responsável pelo agendamento: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .agendar_ligacao_homologacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                data_agendamento=(
+                    data_agendamento
+                ),
+                responsavel_agendamento=(
+                    responsavel_agendamento
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível agendar "
+            f"a Ligação: {erro}"
+        )
+
+        return
+
+    print(
+        "\nLigação agendada com sucesso."
+    )
+
+    _exibir_ligacao(
+        homologacao_atualizada
+    )
+
+def concluir_ligacao_interface() -> None:
+    """
+    Solicita os dados necessários para registrar
+    a Ligação e Energização do sistema.
+    """
+
+    _exibir_titulo(
+        "LIGAÇÃO E ENERGIZAÇÃO DO SISTEMA"
+    )
+
+    codigo_empresa = ler_int(
+        "Código da Empresa: "
+    )
+
+    codigo_homologacao = ler_int(
+        "Código da Homologação: "
+    )
+
+    data_ligacao = input(
+        "Data da Ligação (AAAA-MM-DD): "
+    ).strip()
+
+    responsavel_ligacao = input(
+        "Responsável pela Ligação: "
+    ).strip()
+
+    data_movimentacao = input(
+        "Data do registro (AAAA-MM-DD): "
+    ).strip()
+
+    observacoes = input(
+        "Observações, se houver: "
+    ).strip()
+
+    try:
+        homologacao_atualizada = (
+            homologacoes
+            .concluir_ligacao_homologacao(
+                codigo_homologacao=(
+                    codigo_homologacao
+                ),
+                codigo_empresa=codigo_empresa,
+                data_ligacao=data_ligacao,
+                responsavel_ligacao=(
+                    responsavel_ligacao
+                ),
+                data_movimentacao=(
+                    data_movimentacao
+                ),
+                observacoes=observacoes,
+            )
+        )
+
+    except (TypeError, ValueError) as erro:
+        print(
+            "\nNão foi possível registrar "
+            f"a Ligação: {erro}"
+        )
+
+        return
+
+    print(
+        "\nLigação e Energização registradas "
+        "com sucesso."
+    )
+
+    _exibir_ligacao(
+        homologacao_atualizada
+    )
+
+def menu_ligacao() -> None:
+    """
+    Exibe o submenu operacional
+    da Ligação e Energização.
+    """
+
+    while True:
+        _exibir_titulo(
+            "GESTÃO DA LIGAÇÃO E ENERGIZAÇÃO"
+        )
+
+        print(
+            "1 - Solicitar Ligação"
+        )
+
+        print(
+            "2 - Agendar Ligação"
+        )
+
+        print(
+            "3 - Registrar Ligação / Energização"
+        )
+
+        print(
+            "0 - Voltar"
+        )
+
+        opcao = input(
+            "\nEscolha uma opção: "
+        ).strip()
+
+        if opcao == "1":
+            solicitar_ligacao_interface()
+            _pausar()
+
+        elif opcao == "2":
+            agendar_ligacao_interface()
+            _pausar()
+
+        elif opcao == "3":
+            concluir_ligacao_interface()
+            _pausar()
+
+        elif opcao == "0":
+            return
+
+        else:
+            print(
+                "\nOpção inválida."
+            )
+
+            _pausar()
+
+# ============================================================
 # MENU DE HOMOLOGAÇÕES
 # ============================================================
 
@@ -1265,6 +1614,10 @@ def menu_homologacoes() -> None:
         )
 
         print(
+            "6 - Gerenciar Ligação e Energização"
+        )
+
+        print(
             "0 - Voltar"
         )
 
@@ -1289,6 +1642,9 @@ def menu_homologacoes() -> None:
 
         elif opcao == "5":
             menu_vistoria()
+
+        elif opcao == "6":
+            menu_ligacao()
 
         elif opcao == "0":
             return

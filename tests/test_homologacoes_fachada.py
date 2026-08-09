@@ -1560,6 +1560,339 @@ class TestHomologacoesFachada(unittest.TestCase):
         mock_salvar.assert_not_called()
 
     # ========================================================
+    # OPERAÇÕES DE CAMPO — LIGAÇÃO E ENERGIZAÇÃO
+    # ========================================================
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "solicitar_ligacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_solicitar_ligacao_homologacao(
+        self,
+        mock_obter,
+        mock_solicitar,
+        mock_salvar,
+    ):
+        """
+        Deve localizar a Homologação, delegar
+        a solicitação ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "AGUARDANDO_LIGACAO",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_solicitar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .solicitar_ligacao_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+                data_movimentacao="2026-09-05",
+                observacoes=(
+                    "Solicitação enviada."
+                ),
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_solicitar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            data_solicitacao="2026-09-05",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="LIG-2026-001",
+            data_movimentacao="2026-09-05",
+            observacoes="Solicitação enviada.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "agendar_ligacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_agendar_ligacao_homologacao(
+        self,
+        mock_obter,
+        mock_agendar,
+        mock_salvar,
+    ):
+        """
+        Deve delegar o agendamento da Ligação
+        ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "AGUARDANDO_LIGACAO",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_agendar.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .agendar_ligacao_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_agendamento="2026-09-10",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+                data_movimentacao="2026-09-06",
+                observacoes=(
+                    "Ligação programada."
+                ),
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_agendar.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            data_agendamento="2026-09-10",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-09-06",
+            observacoes="Ligação programada.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "concluir_ligacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria"
+    )
+    def test_concluir_ligacao_homologacao(
+        self,
+        mock_obter,
+        mock_concluir,
+        mock_salvar,
+    ):
+        """
+        Deve delegar a conclusão da Ligação
+        ao domínio e persistir.
+        """
+
+        homologacao_encontrada = {
+            "codigo": 5,
+            "codigo_empresa": 10,
+        }
+
+        homologacao_atualizada = {
+            "codigo": 5,
+            "status": "SISTEMA_LIGADO",
+        }
+
+        mock_obter.return_value = (
+            homologacao_encontrada
+        )
+
+        mock_concluir.return_value = (
+            homologacao_atualizada
+        )
+
+        resultado = (
+            homologacoes
+            .concluir_ligacao_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_ligacao="2026-09-10",
+                responsavel_ligacao=(
+                    "Equipe da Concessionária"
+                ),
+                data_movimentacao="2026-09-10",
+                observacoes=(
+                    "Sistema energizado."
+                ),
+            )
+        )
+
+        mock_obter.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+        )
+
+        mock_concluir.assert_called_once_with(
+            homologacao=homologacao_encontrada,
+            data_ligacao="2026-09-10",
+            responsavel_ligacao=(
+                "Equipe da Concessionária"
+            ),
+            data_movimentacao="2026-09-10",
+            observacoes="Sistema energizado.",
+        )
+
+        mock_salvar.assert_called_once_with()
+
+        self.assertIs(
+            resultado,
+            homologacao_atualizada,
+        )
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "concluir_ligacao_no_dominio",
+        side_effect=ValueError(
+            "Somente uma Ligação agendada "
+            "pode ser concluída."
+        ),
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria",
+        return_value={
+            "codigo": 5,
+            "codigo_empresa": 10,
+        },
+    )
+    def test_falha_na_conclusao_ligacao_nao_deve_persistir(
+        self,
+        mock_obter,
+        mock_concluir,
+        mock_salvar,
+    ):
+        """
+        Uma falha do domínio não deve
+        acionar a persistência.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "agendada",
+        ):
+            homologacoes.concluir_ligacao_homologacao(
+                codigo_homologacao=5,
+                codigo_empresa=10,
+                data_ligacao="2026-09-10",
+                responsavel_ligacao=(
+                    "Equipe da Concessionária"
+                ),
+                data_movimentacao="2026-09-10",
+            )
+
+        mock_concluir.assert_called_once()
+        mock_salvar.assert_not_called()
+
+    @patch(
+        "app.homologacoes."
+        "_salvar_alteracoes"
+    )
+    @patch(
+        "app.homologacoes."
+        "solicitar_ligacao_no_dominio"
+    )
+    @patch(
+        "app.homologacoes."
+        "_obter_homologacao_obrigatoria",
+        side_effect=ValueError(
+            "Homologação não encontrada."
+        ),
+    )
+    def test_ligacao_exige_homologacao_existente(
+        self,
+        mock_obter,
+        mock_solicitar,
+        mock_salvar,
+    ):
+        """
+        Uma Homologação inexistente deve impedir
+        acesso ao domínio e à persistência.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não encontrada",
+        ):
+            homologacoes.solicitar_ligacao_homologacao(
+                codigo_homologacao=999,
+                codigo_empresa=10,
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+                data_movimentacao="2026-09-05",
+            )
+
+        mock_solicitar.assert_not_called()
+        mock_salvar.assert_not_called()
+
+    # ========================================================
     # DEPENDÊNCIAS EXTERNAS
     # ========================================================
 

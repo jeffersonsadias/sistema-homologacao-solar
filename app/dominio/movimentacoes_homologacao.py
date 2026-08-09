@@ -485,6 +485,127 @@ def criar_movimentacao_correcao_pos_vistoria(
         "descricao_correcao": descricao_correcao,
     }
 
+# ============================================================
+# MOVIMENTAÇÕES DA LIGAÇÃO E ENERGIZAÇÃO
+# ============================================================
+
+def criar_movimentacao_ligacao_solicitada(
+    movimentacoes: list[dict],
+    ligacao: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    à solicitação da Ligação e Energização.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "LIGACAO_SOLICITADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Ligação e Energização solicitada "
+            "sob o protocolo "
+            f"{ligacao['protocolo']}."
+        ),
+        "motivo": None,
+        "protocolo_ligacao": (
+            ligacao["protocolo"]
+        ),
+        "data_solicitacao_ligacao": (
+            ligacao["data_solicitacao"]
+        ),
+        "status_ligacao": (
+            ligacao["status"]
+        ),
+    }
+
+def criar_movimentacao_ligacao_agendada(
+    movimentacoes: list[dict],
+    ligacao: dict,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    ao agendamento da Ligação.
+
+    O estado geral da Homologação permanece
+    AGUARDANDO_LIGACAO.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "LIGACAO_AGENDADA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": None,
+        "novo_status": None,
+        "descricao": (
+            "Ligação e Energização agendada para "
+            f"{ligacao['data_agendamento']}."
+        ),
+        "motivo": None,
+        "protocolo_ligacao": (
+            ligacao["protocolo"]
+        ),
+        "data_agendamento_ligacao": (
+            ligacao["data_agendamento"]
+        ),
+        "status_ligacao": (
+            ligacao["status"]
+        ),
+    }
+
+def criar_movimentacao_ligacao_concluida(
+    movimentacoes: list[dict],
+    ligacao: dict,
+    status_anterior: StatusHomologacao,
+    novo_status: StatusHomologacao,
+    data_movimentacao: str,
+    responsavel: str,
+) -> dict:
+    """
+    Cria uma Movimentação correspondente
+    à conclusão da Ligação e Energização.
+    """
+
+    return {
+        "codigo": gerar_proximo_codigo_movimentacao(
+            movimentacoes
+        ),
+        "tipo_evento": "LIGACAO_CONCLUIDA",
+        "data": data_movimentacao,
+        "responsavel": responsavel,
+        "status_anterior": status_anterior.value,
+        "novo_status": novo_status.value,
+        "descricao": (
+            "Ligação e Energização concluída em "
+            f"{ligacao['data_ligacao']}."
+        ),
+        "motivo": None,
+        "protocolo_ligacao": (
+            ligacao["protocolo"]
+        ),
+        "data_ligacao": (
+            ligacao["data_ligacao"]
+        ),
+        "status_ligacao": (
+            ligacao["status"]
+        ),
+    }
+
+
 def criar_movimentacao_documento_adicionado(
     movimentacoes: list[dict],
     documento: dict,

@@ -29,11 +29,13 @@ from app import projetos
 from app.dominio.homologacoes import (
     agendar_vistoria,
     aprovar_vistoria,
+    agendar_ligacao,
     buscar_homologacao_ativa_por_projeto,
     buscar_homologacao_por_codigo,
     buscar_homologacoes_por_concessionaria,
     buscar_homologacoes_por_status,
     concluir_instalacao,
+    concluir_ligacao,
     criar_dados_homologacao,
     iniciar_instalacao,
     projeto_possui_homologacao_ativa,
@@ -48,6 +50,7 @@ from app.dominio.homologacoes import (
     registrar_realizacao_vistoria,
     reprovar_vistoria,
     solicitar_vistoria,
+    solicitar_ligacao,
 )
 
 from app.dominio.status_homologacao import (
@@ -112,6 +115,18 @@ reprovar_vistoria_no_dominio = (
 
 registrar_correcao_pos_vistoria_no_dominio = (
     registrar_correcao_pos_vistoria
+)
+
+solicitar_ligacao_no_dominio = (
+    solicitar_ligacao
+)
+
+agendar_ligacao_no_dominio = (
+    agendar_ligacao
+)
+
+concluir_ligacao_no_dominio = (
+    concluir_ligacao
 )
 
 # ============================================================
@@ -803,3 +818,112 @@ def registrar_correcao_pos_vistoria_homologacao(
 
     return homologacao_atualizada
 
+# ============================================================
+# OPERAÇÕES DE CAMPO — LIGAÇÃO E ENERGIZAÇÃO
+# ============================================================
+
+def solicitar_ligacao_homologacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    data_solicitacao: str,
+    responsavel_solicitacao: str,
+    protocolo: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Solicita e persiste a Ligação
+    e Energização da Homologação.
+
+    A busca aplica o isolamento por Empresa.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        solicitar_ligacao_no_dominio(
+            homologacao=homologacao,
+            data_solicitacao=data_solicitacao,
+            responsavel_solicitacao=(
+                responsavel_solicitacao
+            ),
+            protocolo=protocolo,
+            data_movimentacao=data_movimentacao,
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def agendar_ligacao_homologacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    data_agendamento: str,
+    responsavel_agendamento: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Agenda e persiste a Ligação
+    da Homologação.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        agendar_ligacao_no_dominio(
+            homologacao=homologacao,
+            data_agendamento=data_agendamento,
+            responsavel_agendamento=(
+                responsavel_agendamento
+            ),
+            data_movimentacao=data_movimentacao,
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada
+
+def concluir_ligacao_homologacao(
+    codigo_homologacao: int,
+    codigo_empresa: int,
+    data_ligacao: str,
+    responsavel_ligacao: str,
+    data_movimentacao: str,
+    observacoes: str | None = None,
+) -> dict[str, Any]:
+    """
+    Registra e persiste a conclusão
+    da Ligação e Energização.
+    """
+
+    homologacao = _obter_homologacao_obrigatoria(
+        codigo_homologacao=codigo_homologacao,
+        codigo_empresa=codigo_empresa,
+    )
+
+    homologacao_atualizada = (
+        concluir_ligacao_no_dominio(
+            homologacao=homologacao,
+            data_ligacao=data_ligacao,
+            responsavel_ligacao=(
+                responsavel_ligacao
+            ),
+            data_movimentacao=data_movimentacao,
+            observacoes=observacoes,
+        )
+    )
+
+    _salvar_alteracoes()
+
+    return homologacao_atualizada

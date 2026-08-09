@@ -29,6 +29,9 @@ from app.dominio.movimentacoes_homologacao import (
     criar_movimentacao_vistoria_aprovada,
     criar_movimentacao_vistoria_reprovada,
     criar_movimentacao_correcao_pos_vistoria,
+    criar_movimentacao_ligacao_agendada,
+    criar_movimentacao_ligacao_concluida,
+    criar_movimentacao_ligacao_solicitada,
     gerar_proximo_codigo_movimentacao,
 )
 
@@ -739,6 +742,203 @@ class TestMovimentacoesVistoria(
                 "descricao_correcao"
             ],
             "Identificação do inversor instalada.",
+        )
+
+class TestMovimentacoesLigacao(
+    unittest.TestCase
+):
+    """
+    Testes das Movimentações relacionadas
+    à Ligação e Energização.
+    """
+
+    def test_deve_criar_movimentacao_ligacao_solicitada(
+        self,
+    ):
+        """
+        Deve registrar os principais dados
+        da solicitação da Ligação.
+        """
+
+        ligacao = {
+            "status": "SOLICITADA",
+            "data_solicitacao": "2026-09-05",
+            "protocolo": "LIG-2026-001",
+        }
+
+        movimentacao = (
+            criar_movimentacao_ligacao_solicitada(
+                movimentacoes=[
+                    {
+                        "codigo": 9,
+                    }
+                ],
+                ligacao=ligacao,
+                status_anterior=(
+                    StatusHomologacao
+                    .VISTORIA_APROVADA
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .AGUARDANDO_LIGACAO
+                ),
+                data_movimentacao="2026-09-05",
+                responsavel="Ana Lima",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            10,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "LIGACAO_SOLICITADA",
+        )
+
+        self.assertEqual(
+            movimentacao["status_anterior"],
+            "VISTORIA_APROVADA",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "AGUARDANDO_LIGACAO",
+        )
+
+        self.assertEqual(
+            movimentacao["protocolo_ligacao"],
+            "LIG-2026-001",
+        )
+
+        self.assertEqual(
+            movimentacao["status_ligacao"],
+            "SOLICITADA",
+        )
+
+    def test_deve_criar_movimentacao_ligacao_agendada(
+        self,
+    ):
+        """
+        Deve registrar o agendamento sem
+        alterar o estado geral da Homologação.
+        """
+
+        ligacao = {
+            "status": "AGENDADA",
+            "protocolo": "LIG-2026-001",
+            "data_agendamento": "2026-09-10",
+        }
+
+        movimentacao = (
+            criar_movimentacao_ligacao_agendada(
+                movimentacoes=[
+                    {
+                        "codigo": 10,
+                    }
+                ],
+                ligacao=ligacao,
+                data_movimentacao="2026-09-06",
+                responsavel="Carlos Souza",
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            11,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "LIGACAO_AGENDADA",
+        )
+
+        self.assertIsNone(
+            movimentacao["status_anterior"]
+        )
+
+        self.assertIsNone(
+            movimentacao["novo_status"]
+        )
+
+        self.assertEqual(
+            movimentacao[
+                "data_agendamento_ligacao"
+            ],
+            "2026-09-10",
+        )
+
+        self.assertEqual(
+            movimentacao["status_ligacao"],
+            "AGENDADA",
+        )
+
+    def test_deve_criar_movimentacao_ligacao_concluida(
+        self,
+    ):
+        """
+        Deve registrar a conclusão da Ligação
+        e a mudança para SISTEMA_LIGADO.
+        """
+
+        ligacao = {
+            "status": "CONCLUIDA",
+            "protocolo": "LIG-2026-001",
+            "data_ligacao": "2026-09-10",
+        }
+
+        movimentacao = (
+            criar_movimentacao_ligacao_concluida(
+                movimentacoes=[
+                    {
+                        "codigo": 11,
+                    }
+                ],
+                ligacao=ligacao,
+                status_anterior=(
+                    StatusHomologacao
+                    .AGUARDANDO_LIGACAO
+                ),
+                novo_status=(
+                    StatusHomologacao
+                    .SISTEMA_LIGADO
+                ),
+                data_movimentacao="2026-09-10",
+                responsavel=(
+                    "Equipe da Concessionária"
+                ),
+            )
+        )
+
+        self.assertEqual(
+            movimentacao["codigo"],
+            12,
+        )
+
+        self.assertEqual(
+            movimentacao["tipo_evento"],
+            "LIGACAO_CONCLUIDA",
+        )
+
+        self.assertEqual(
+            movimentacao["status_anterior"],
+            "AGUARDANDO_LIGACAO",
+        )
+
+        self.assertEqual(
+            movimentacao["novo_status"],
+            "SISTEMA_LIGADO",
+        )
+
+        self.assertEqual(
+            movimentacao["data_ligacao"],
+            "2026-09-10",
+        )
+
+        self.assertEqual(
+            movimentacao["status_ligacao"],
+            "CONCLUIDA",
         )
 
 class TestMovimentacoesDocumento(unittest.TestCase):

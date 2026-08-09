@@ -48,6 +48,18 @@ class StatusVistoria(str, Enum):
     APROVADA = "APROVADA"
     REPROVADA = "REPROVADA"
 
+class StatusLigacao(str, Enum):
+    """
+    Estados internos da Ligação e Energização.
+
+    Esses estados detalham a execução da Ligação
+    e não substituem o status geral da Homologação.
+    """
+
+    SOLICITADA = "SOLICITADA"
+    AGENDADA = "AGENDADA"
+    CONCLUIDA = "CONCLUIDA"
+
 def _validar_texto_obrigatorio(
     valor: str,
     nome_campo: str,
@@ -281,6 +293,12 @@ def validar_operacoes_campo(
             "Ligação deve ser um dicionário "
             "ou None."
         )
+
+    if ligacao is not None:
+        validar_ligacao(
+            ligacao
+        )
+
 
 def criar_dados_vistoria_solicitada(
     codigo: int,
@@ -1159,6 +1177,408 @@ def preparar_reprovacao_vistoria(
     )
 
     return vistoria_candidata
+
+
+def criar_dados_ligacao_solicitada(
+    data_solicitacao: str,
+    responsavel_solicitacao: str,
+    protocolo: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Cria os dados iniciais da Ligação e Energização.
+
+    A Ligação nasce com status SOLICITADA.
+
+    Os dados de agendamento e conclusão permanecem
+    ausentes até que os respectivos eventos ocorram.
+    """
+
+    data_normalizada = _validar_data_iso(
+        data_solicitacao,
+        "Data de solicitação da Ligação",
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_solicitacao,
+            "Responsável pela solicitação",
+        )
+    )
+
+    protocolo_normalizado = (
+        _validar_texto_obrigatorio(
+            protocolo,
+            "Protocolo da Ligação",
+        )
+    )
+
+    observacoes_normalizadas = (
+        _normalizar_texto_opcional(
+            observacoes,
+            "Observações da Ligação",
+        )
+    )
+
+    return {
+        "status": StatusLigacao.SOLICITADA.value,
+        "data_solicitacao": data_normalizada,
+        "responsavel_solicitacao": (
+            responsavel_normalizado
+        ),
+        "protocolo": protocolo_normalizado,
+        "data_agendamento": None,
+        "responsavel_agendamento": None,
+        "data_ligacao": None,
+        "responsavel_ligacao": None,
+        "observacoes": observacoes_normalizadas,
+    }
+
+def validar_ligacao(
+    ligacao: dict,
+) -> None:
+    """
+    Valida a estrutura e a coerência interna
+    da Ligação e Energização.
+
+    Estados considerados:
+
+    - SOLICITADA;
+    - AGENDADA;
+    - CONCLUIDA.
+    """
+
+    if not isinstance(
+        ligacao,
+        dict,
+    ):
+        raise TypeError(
+            "Ligação deve ser representada "
+            "por um dicionário."
+        )
+
+    campos_obrigatorios = (
+        "status",
+        "data_solicitacao",
+        "responsavel_solicitacao",
+        "protocolo",
+        "data_agendamento",
+        "responsavel_agendamento",
+        "data_ligacao",
+        "responsavel_ligacao",
+        "observacoes",
+    )
+
+    for campo in campos_obrigatorios:
+        if campo not in ligacao:
+            raise ValueError(
+                "Estrutura de Ligação inválida: "
+                f"campo ausente: {campo}."
+            )
+
+    try:
+        status_ligacao = StatusLigacao(
+            ligacao["status"]
+        )
+
+    except (
+        ValueError,
+        TypeError,
+    ) as erro:
+        raise ValueError(
+            "Status de Ligação inválido: "
+            f"{ligacao.get('status')!r}."
+        ) from erro
+
+    _validar_data_iso(
+        ligacao["data_solicitacao"],
+        "Data de solicitação da Ligação",
+    )
+
+    _validar_texto_obrigatorio(
+        ligacao["responsavel_solicitacao"],
+        "Responsável pela solicitação",
+    )
+
+    _validar_texto_obrigatorio(
+        ligacao["protocolo"],
+        "Protocolo da Ligação",
+    )
+
+    _normalizar_texto_opcional(
+        ligacao["observacoes"],
+        "Observações da Ligação",
+    )
+
+    if (
+        status_ligacao
+        == StatusLigacao.SOLICITADA
+    ):
+        if any(
+            valor is not None
+            for valor in (
+                ligacao["data_agendamento"],
+                ligacao[
+                    "responsavel_agendamento"
+                ],
+                ligacao["data_ligacao"],
+                ligacao["responsavel_ligacao"],
+            )
+        ):
+            raise ValueError(
+                "Uma Ligação solicitada não pode "
+                "possuir dados de agendamento "
+                "ou conclusão."
+            )
+
+    elif (
+        status_ligacao
+        == StatusLigacao.AGENDADA
+    ):
+        _validar_data_iso(
+            ligacao["data_agendamento"],
+            "Data de agendamento da Ligação",
+        )
+
+        _validar_texto_obrigatorio(
+            ligacao[
+                "responsavel_agendamento"
+            ],
+            "Responsável pelo agendamento",
+        )
+
+        if any(
+            valor is not None
+            for valor in (
+                ligacao["data_ligacao"],
+                ligacao["responsavel_ligacao"],
+            )
+        ):
+            raise ValueError(
+                "Uma Ligação agendada não pode "
+                "possuir dados de conclusão."
+            )
+
+    elif (
+        status_ligacao
+        == StatusLigacao.CONCLUIDA
+    ):
+        _validar_data_iso(
+            ligacao["data_agendamento"],
+            "Data de agendamento da Ligação",
+        )
+
+        _validar_texto_obrigatorio(
+            ligacao[
+                "responsavel_agendamento"
+            ],
+            "Responsável pelo agendamento",
+        )
+
+        _validar_data_iso(
+            ligacao["data_ligacao"],
+            "Data da Ligação",
+        )
+
+        _validar_texto_obrigatorio(
+            ligacao["responsavel_ligacao"],
+            "Responsável pela Ligação",
+        )
+
+def preparar_agendamento_ligacao(
+    ligacao: dict,
+    data_agendamento: str,
+    responsavel_agendamento: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Prepara uma cópia da Ligação com
+    o agendamento registrado.
+
+    A função não modifica a Ligação recebida.
+    """
+
+    validar_ligacao(
+        ligacao
+    )
+
+    status_atual = StatusLigacao(
+        ligacao["status"]
+    )
+
+    if (
+        status_atual
+        != StatusLigacao.SOLICITADA
+    ):
+        raise ValueError(
+            "Somente uma Ligação solicitada "
+            "pode ser agendada."
+        )
+
+    data_agendamento_normalizada = (
+        _validar_data_iso(
+            data_agendamento,
+            "Data de agendamento da Ligação",
+        )
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_agendamento,
+            "Responsável pelo agendamento",
+        )
+    )
+
+    observacoes_normalizadas = (
+        _normalizar_texto_opcional(
+            observacoes,
+            "Observações da Ligação",
+        )
+    )
+
+    data_solicitacao_convertida = (
+        date.fromisoformat(
+            ligacao["data_solicitacao"]
+        )
+    )
+
+    data_agendamento_convertida = (
+        date.fromisoformat(
+            data_agendamento_normalizada
+        )
+    )
+
+    if (
+        data_agendamento_convertida
+        < data_solicitacao_convertida
+    ):
+        raise ValueError(
+            "A data de agendamento da Ligação "
+            "não pode ser anterior à data de solicitação."
+        )
+
+    ligacao_candidata = ligacao.copy()
+
+    ligacao_candidata["status"] = (
+        StatusLigacao.AGENDADA.value
+    )
+
+    ligacao_candidata[
+        "data_agendamento"
+    ] = data_agendamento_normalizada
+
+    ligacao_candidata[
+        "responsavel_agendamento"
+    ] = responsavel_normalizado
+
+    if observacoes is not None:
+        ligacao_candidata["observacoes"] = (
+            observacoes_normalizadas
+        )
+
+    validar_ligacao(
+        ligacao_candidata
+    )
+
+    return ligacao_candidata
+
+def preparar_conclusao_ligacao(
+    ligacao: dict,
+    data_ligacao: str,
+    responsavel_ligacao: str,
+    observacoes: str | None = None,
+) -> dict:
+    """
+    Prepara uma cópia da Ligação com
+    sua conclusão e energização registradas.
+
+    A função não modifica a Ligação recebida.
+    """
+
+    validar_ligacao(
+        ligacao
+    )
+
+    status_atual = StatusLigacao(
+        ligacao["status"]
+    )
+
+    if (
+        status_atual
+        != StatusLigacao.AGENDADA
+    ):
+        raise ValueError(
+            "Somente uma Ligação agendada "
+            "pode ser concluída."
+        )
+
+    data_ligacao_normalizada = (
+        _validar_data_iso(
+            data_ligacao,
+            "Data da Ligação",
+        )
+    )
+
+    responsavel_normalizado = (
+        _validar_texto_obrigatorio(
+            responsavel_ligacao,
+            "Responsável pela Ligação",
+        )
+    )
+
+    observacoes_normalizadas = (
+        _normalizar_texto_opcional(
+            observacoes,
+            "Observações da Ligação",
+        )
+    )
+
+    data_agendamento_convertida = (
+        date.fromisoformat(
+            ligacao["data_agendamento"]
+        )
+    )
+
+    data_ligacao_convertida = (
+        date.fromisoformat(
+            data_ligacao_normalizada
+        )
+    )
+
+    if (
+        data_ligacao_convertida
+        < data_agendamento_convertida
+    ):
+        raise ValueError(
+            "A data da Ligação não pode ser "
+            "anterior à data agendada."
+        )
+
+    ligacao_candidata = ligacao.copy()
+
+    ligacao_candidata["status"] = (
+        StatusLigacao.CONCLUIDA.value
+    )
+
+    ligacao_candidata[
+        "data_ligacao"
+    ] = data_ligacao_normalizada
+
+    ligacao_candidata[
+        "responsavel_ligacao"
+    ] = responsavel_normalizado
+
+    if observacoes is not None:
+        ligacao_candidata["observacoes"] = (
+            observacoes_normalizadas
+        )
+
+    validar_ligacao(
+        ligacao_candidata
+    )
+
+    return ligacao_candidata
+
 
 def criar_dados_planejamento_instalacao(
     data_prevista: str,

@@ -6,10 +6,12 @@ from app.dominio.homologacoes import (
     adicionar_resposta_exigencia_concessionaria,
     adicionar_submissao_homologacao,
     agendar_vistoria,
+    agendar_ligacao,
     alterar_status_documento_homologacao,
     alterar_status_homologacao,
     alterar_status_operacional_submissao,
     aplicar_evento_homologacao,
+    aprovar_vistoria,
     buscar_homologacao_ativa_por_projeto,
     buscar_homologacao_por_codigo,
     buscar_homologacoes_por_concessionaria,
@@ -18,6 +20,7 @@ from app.dominio.homologacoes import (
     buscar_submissao_por_numero_sequencial,
     codigo_homologacao_existe,
     concluir_instalacao,
+    concluir_ligacao,
     criar_dados_homologacao,
     enviar_submissao_homologacao,
     homologacao_esta_sem_responsavel,
@@ -36,9 +39,9 @@ from app.dominio.homologacoes import (
     registrar_planejamento_instalacao,
     registrar_realizacao_vistoria,
     registrar_correcao_pos_vistoria,
-    solicitar_vistoria,
-    aprovar_vistoria,
     reprovar_vistoria,
+    solicitar_vistoria,
+    solicitar_ligacao,
 )
 
 from app.dominio.documentos_homologacao import (
@@ -77,6 +80,7 @@ from app.dominio.status_submissao import (
 
 from app.dominio.operacoes_campo import (
     StatusVistoria,
+    StatusLigacao,
 )
 
 class TestHomologacoesDominio(unittest.TestCase):
@@ -8068,6 +8072,407 @@ class TestHomologacoesDominio(unittest.TestCase):
             StatusHomologacao
             .VISTORIA_SOLICITADA
             .value,
+        )
+
+    def _aprovar_vistoria_valida(
+        self,
+    ):
+        """
+        Prepara integralmente o fluxo
+        até uma Vistoria aprovada.
+        """
+
+        self._realizar_vistoria_valida()
+
+        aprovar_vistoria(
+            homologacao=self.homologacao_ativa,
+            codigo_vistoria=1,
+            data_resultado="2026-09-01",
+            responsavel_resultado="Ana Lima",
+            data_movimentacao="2026-09-01",
+        )
+
+    # ========================================================
+    # OPERAÇÕES DE CAMPO — LIGAÇÃO E ENERGIZAÇÃO
+    # ========================================================
+
+    def test_solicitar_ligacao(
+        self,
+    ):
+        """
+        Deve registrar a Ligação, avançar para
+        AGUARDANDO_LIGACAO e criar Movimentação.
+        """
+
+        self._aprovar_vistoria_valida()
+
+        resultado = solicitar_ligacao(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-09-05",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="LIG-2026-001",
+            data_movimentacao="2026-09-05",
+            observacoes="Solicitação enviada.",
+        )
+
+        ligacao = resultado[
+            "operacoes_campo"
+        ]["ligacao"]
+
+        self.assertIsNotNone(
+            ligacao
+        )
+
+        self.assertEqual(
+            ligacao["status"],
+            StatusLigacao.SOLICITADA.value,
+        )
+
+        self.assertEqual(
+            ligacao["protocolo"],
+            "LIG-2026-001",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .AGUARDANDO_LIGACAO
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "LIGACAO_SOLICITADA",
+        )
+
+    def test_solicitacao_ligacao_exige_vistoria_aprovada(
+        self,
+    ):
+        """
+        A Ligação não pode ser solicitada
+        antes da aprovação da Vistoria.
+        """
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "após a aprovação",
+        ):
+            solicitar_ligacao(
+                homologacao=self.homologacao_ativa,
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao="Ana Lima",
+                protocolo="LIG-2026-001",
+                data_movimentacao="2026-09-05",
+            )
+
+    def test_nao_deve_solicitar_ligacao_duas_vezes(
+        self,
+    ):
+        """
+        Uma Homologação deve possuir
+        somente uma Ligação.
+        """
+
+        self._aprovar_vistoria_valida()
+
+        solicitar_ligacao(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-09-05",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="LIG-2026-001",
+            data_movimentacao="2026-09-05",
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            solicitar_ligacao(
+                homologacao=self.homologacao_ativa,
+                data_solicitacao="2026-09-06",
+                responsavel_solicitacao="Ana Lima",
+                protocolo="LIG-2026-002",
+                data_movimentacao="2026-09-06",
+            )
+
+    def _solicitar_ligacao_valida(
+        self,
+    ):
+        """
+        Prepara Vistoria aprovada e registra
+        uma solicitação válida de Ligação.
+        """
+
+        self._aprovar_vistoria_valida()
+
+        solicitar_ligacao(
+            homologacao=self.homologacao_ativa,
+            data_solicitacao="2026-09-05",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="LIG-2026-001",
+            data_movimentacao="2026-09-05",
+        )
+
+    def test_agendar_ligacao(
+        self,
+    ):
+        """
+        Deve agendar a Ligação sem alterar
+        o estado geral AGUARDANDO_LIGACAO.
+        """
+
+        self._solicitar_ligacao_valida()
+
+        resultado = agendar_ligacao(
+            homologacao=self.homologacao_ativa,
+            data_agendamento="2026-09-10",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-09-06",
+            observacoes="Ligação programada.",
+        )
+
+        ligacao = resultado[
+            "operacoes_campo"
+        ]["ligacao"]
+
+        self.assertEqual(
+            ligacao["status"],
+            StatusLigacao.AGENDADA.value,
+        )
+
+        self.assertEqual(
+            ligacao["data_agendamento"],
+            "2026-09-10",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .AGUARDANDO_LIGACAO
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "LIGACAO_AGENDADA",
+        )
+
+    def _agendar_ligacao_valida(
+        self,
+    ):
+        """
+        Prepara uma Ligação solicitada
+        e registra seu agendamento.
+        """
+
+        self._solicitar_ligacao_valida()
+
+        agendar_ligacao(
+            homologacao=self.homologacao_ativa,
+            data_agendamento="2026-09-10",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            data_movimentacao="2026-09-06",
+        )
+
+    def test_concluir_ligacao(
+        self,
+    ):
+        """
+        Deve concluir a Ligação, energizar o sistema
+        e avançar para SISTEMA_LIGADO.
+        """
+
+        self._agendar_ligacao_valida()
+
+        resultado = concluir_ligacao(
+            homologacao=self.homologacao_ativa,
+            data_ligacao="2026-09-10",
+            responsavel_ligacao=(
+                "Equipe da Concessionária"
+            ),
+            data_movimentacao="2026-09-10",
+            observacoes="Sistema energizado.",
+        )
+
+        ligacao = resultado[
+            "operacoes_campo"
+        ]["ligacao"]
+
+        self.assertEqual(
+            ligacao["status"],
+            StatusLigacao.CONCLUIDA.value,
+        )
+
+        self.assertEqual(
+            ligacao["data_ligacao"],
+            "2026-09-10",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusHomologacao
+            .SISTEMA_LIGADO
+            .value,
+        )
+
+        self.assertEqual(
+            resultado["movimentacoes"][-1][
+                "tipo_evento"
+            ],
+            "LIGACAO_CONCLUIDA",
+        )
+
+    def test_conclusao_ligacao_exige_agendamento(
+        self,
+    ):
+        """
+        Uma Ligação apenas solicitada
+        não pode ser concluída.
+        """
+
+        self._solicitar_ligacao_valida()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "agendada",
+        ):
+            concluir_ligacao(
+                homologacao=self.homologacao_ativa,
+                data_ligacao="2026-09-10",
+                responsavel_ligacao=(
+                    "Equipe da Concessionária"
+                ),
+                data_movimentacao="2026-09-10",
+            )
+
+    def test_falha_na_solicitacao_ligacao_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma solicitação inválida deve preservar
+        integralmente a Homologação.
+        """
+
+        self._aprovar_vistoria_valida()
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        responsavel_antes = (
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            solicitar_ligacao(
+                homologacao=self.homologacao_ativa,
+                data_solicitacao="05/09/2026",
+                responsavel_solicitacao="Ana Lima",
+                protocolo="LIG-2026-001",
+                data_movimentacao="2026-09-05",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "responsavel_atual"
+            ],
+            responsavel_antes,
+        )
+
+        self.assertIsNone(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["ligacao"]
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
+        )
+
+    def test_falha_na_conclusao_ligacao_nao_deve_alterar_homologacao(
+        self,
+    ):
+        """
+        Uma conclusão inválida deve preservar
+        a Ligação e a Homologação reais.
+        """
+
+        self._agendar_ligacao_valida()
+
+        ligacao_antes = (
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["ligacao"].copy()
+        )
+
+        status_antes = (
+            self.homologacao_ativa["status"]
+        )
+
+        quantidade_movimentacoes_antes = len(
+            self.homologacao_ativa[
+                "movimentacoes"
+            ]
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            concluir_ligacao(
+                homologacao=self.homologacao_ativa,
+                data_ligacao="09/09/2026",
+                responsavel_ligacao=(
+                    "Equipe da Concessionária"
+                ),
+                data_movimentacao="2026-09-10",
+            )
+
+        self.assertEqual(
+            self.homologacao_ativa[
+                "operacoes_campo"
+            ]["ligacao"],
+            ligacao_antes,
+        )
+
+        self.assertEqual(
+            self.homologacao_ativa["status"],
+            status_antes,
+        )
+
+        self.assertEqual(
+            len(
+                self.homologacao_ativa[
+                    "movimentacoes"
+                ]
+            ),
+            quantidade_movimentacoes_antes,
         )
 
 if __name__ == "__main__":

@@ -1384,6 +1384,361 @@ class TestHomologacoesInterface(
         mock_correcao.assert_called_once_with()
         mock_pausar.assert_called_once_with()
 
+    # ========================================================
+    # OPERAÇÕES DE CAMPO — LIGAÇÃO E ENERGIZAÇÃO
+    # ========================================================
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_ligacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.solicitar_ligacao_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-05",
+            "Ana Lima",
+            "LIG-2026-001",
+            "2026-09-05",
+            "Solicitação enviada.",
+        ],
+    )
+    def test_solicitar_ligacao_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_solicitar,
+        mock_exibir,
+    ):
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_solicitar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .solicitar_ligacao_interface()
+        )
+
+        mock_solicitar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_solicitacao="2026-09-05",
+            responsavel_solicitacao="Ana Lima",
+            protocolo="LIG-2026-001",
+            data_movimentacao="2026-09-05",
+            observacoes="Solicitação enviada.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_ligacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.agendar_ligacao_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-10",
+            "Carlos Souza",
+            "2026-09-06",
+            "Ligação programada.",
+        ],
+    )
+    def test_agendar_ligacao_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_agendar,
+        mock_exibir,
+    ):
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_agendar.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .agendar_ligacao_interface()
+        )
+
+        mock_agendar.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_agendamento="2026-09-10",
+            responsavel_agendamento="Carlos Souza",
+            data_movimentacao="2026-09-06",
+            observacoes="Ligação programada.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_ligacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.concluir_ligacao_homologacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-10",
+            "Equipe da Concessionária",
+            "2026-09-10",
+            "Sistema energizado.",
+        ],
+    )
+    def test_concluir_ligacao_interface(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_concluir,
+        mock_exibir,
+    ):
+        homologacao_atualizada = {
+            "codigo": 5,
+        }
+
+        mock_concluir.return_value = (
+            homologacao_atualizada
+        )
+
+        (
+            homologacoes_interface
+            .concluir_ligacao_interface()
+        )
+
+        mock_concluir.assert_called_once_with(
+            codigo_homologacao=5,
+            codigo_empresa=10,
+            data_ligacao="2026-09-10",
+            responsavel_ligacao=(
+                "Equipe da Concessionária"
+            ),
+            data_movimentacao="2026-09-10",
+            observacoes="Sistema energizado.",
+        )
+
+        mock_exibir.assert_called_once_with(
+            homologacao_atualizada
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_exibir_ligacao"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "homologacoes.concluir_ligacao_homologacao",
+        side_effect=ValueError(
+            "Somente uma Ligação agendada "
+            "pode ser concluída."
+        ),
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "ler_int",
+        side_effect=[
+            10,
+            5,
+        ],
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2026-09-10",
+            "Equipe da Concessionária",
+            "2026-09-10",
+            "",
+        ],
+    )
+    def test_conclusao_ligacao_invalida_exibe_erro(
+        self,
+        mock_input,
+        mock_ler_int,
+        mock_concluir,
+        mock_exibir,
+        mock_print,
+    ):
+        (
+            homologacoes_interface
+            .concluir_ligacao_interface()
+        )
+
+        mock_exibir.assert_not_called()
+
+        mock_print.assert_any_call(
+            "\nNão foi possível registrar "
+            "a Ligação: Somente uma Ligação "
+            "agendada pode ser concluída."
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "solicitar_ligacao_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "1",
+            "0",
+        ],
+    )
+    def test_menu_ligacao_deve_abrir_solicitacao(
+        self,
+        mock_input,
+        mock_solicitar,
+        mock_pausar,
+    ):
+        homologacoes_interface.menu_ligacao()
+
+        mock_solicitar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "agendar_ligacao_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "2",
+            "0",
+        ],
+    )
+    def test_menu_ligacao_deve_abrir_agendamento(
+        self,
+        mock_input,
+        mock_agendar,
+        mock_pausar,
+    ):
+        homologacoes_interface.menu_ligacao()
+
+        mock_agendar.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "_pausar"
+    )
+    @patch(
+        "app.interface.homologacoes_interface."
+        "concluir_ligacao_interface"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "3",
+            "0",
+        ],
+    )
+    def test_menu_ligacao_deve_abrir_conclusao(
+        self,
+        mock_input,
+        mock_concluir,
+        mock_pausar,
+    ):
+        homologacoes_interface.menu_ligacao()
+
+        mock_concluir.assert_called_once_with()
+        mock_pausar.assert_called_once_with()
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "builtins.input",
+        return_value="0",
+    )
+    def test_menu_homologacoes_deve_exibir_gestao_ligacao(
+        self,
+        mock_input,
+        mock_print,
+    ):
+        homologacoes_interface.menu_homologacoes()
+
+        mock_print.assert_any_call(
+            "6 - Gerenciar Ligação e Energização"
+        )
+
+    @patch(
+        "app.interface.homologacoes_interface."
+        "menu_ligacao"
+    )
+    @patch(
+        "builtins.input",
+        side_effect=[
+            "6",
+            "0",
+        ],
+    )
+    def test_menu_deve_abrir_gestao_ligacao(
+        self,
+        mock_input,
+        mock_menu_ligacao,
+    ):
+        homologacoes_interface.menu_homologacoes()
+
+        mock_menu_ligacao.assert_called_once_with()
+
+    # ========================================================
+    # TESTES GERAIS — MENU DE HOMOLOGAÇÕES
+    # ========================================================
+
     @patch(
         "builtins.print"
     )

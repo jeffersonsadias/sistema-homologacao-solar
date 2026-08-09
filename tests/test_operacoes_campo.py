@@ -6,10 +6,12 @@ import unittest
 
 from app.dominio.operacoes_campo import (
     StatusInstalacao,
+    StatusLigacao,
     StatusVistoria,
     buscar_ultima_vistoria,
     buscar_vistoria_por_codigo,
     buscar_vistoria_por_numero_sequencial,
+    criar_dados_ligacao_solicitada,
     criar_dados_operacoes_campo,
     criar_dados_planejamento_instalacao,
     criar_dados_vistoria_solicitada,
@@ -21,7 +23,10 @@ from app.dominio.operacoes_campo import (
     preparar_reprovacao_vistoria,
     preparar_conclusao_instalacao,
     preparar_inicio_instalacao,
+    preparar_agendamento_ligacao,
+    preparar_conclusao_ligacao,
     validar_instalacao,
+    validar_ligacao,
     validar_operacoes_campo,
     validar_vistoria,
 )
@@ -185,6 +190,522 @@ class TestOperacoesCampo(unittest.TestCase):
                     "vistorias": [],
                     "ligacao": [],
                 }
+            )
+
+class TestLigacao(
+    unittest.TestCase
+):
+    """
+    Testes da estrutura da Ligação
+    e Energização.
+    """
+
+    def test_status_ligacao_devem_ser_oficiais(
+        self,
+    ):
+        """
+        Deve possuir os estados internos
+        previstos para a Ligação.
+        """
+
+        self.assertEqual(
+            StatusLigacao.SOLICITADA.value,
+            "SOLICITADA",
+        )
+
+        self.assertEqual(
+            StatusLigacao.AGENDADA.value,
+            "AGENDADA",
+        )
+
+        self.assertEqual(
+            StatusLigacao.CONCLUIDA.value,
+            "CONCLUIDA",
+        )
+
+    def test_criar_ligacao_solicitada(
+        self,
+    ):
+        """
+        Deve criar uma Ligação com
+        status SOLICITADA.
+        """
+
+        ligacao = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+                observacoes=(
+                    "Solicitação protocolada."
+                ),
+            )
+        )
+
+        self.assertEqual(
+            ligacao["status"],
+            StatusLigacao.SOLICITADA.value,
+        )
+
+        self.assertEqual(
+            ligacao["data_solicitacao"],
+            "2026-09-05",
+        )
+
+        self.assertEqual(
+            ligacao["protocolo"],
+            "LIG-2026-001",
+        )
+
+        self.assertIsNone(
+            ligacao["data_agendamento"]
+        )
+
+        self.assertIsNone(
+            ligacao["data_ligacao"]
+        )
+
+    def test_ligacao_deve_normalizar_textos(
+        self,
+    ):
+        """
+        Os textos devem ser armazenados
+        sem espaços externos.
+        """
+
+        ligacao = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "  Ana Lima  "
+                ),
+                protocolo="  LIG-001  ",
+                observacoes=(
+                    "  Ligação solicitada.  "
+                ),
+            )
+        )
+
+        self.assertEqual(
+            ligacao[
+                "responsavel_solicitacao"
+            ],
+            "Ana Lima",
+        )
+
+        self.assertEqual(
+            ligacao["protocolo"],
+            "LIG-001",
+        )
+
+        self.assertEqual(
+            ligacao["observacoes"],
+            "Ligação solicitada.",
+        )
+
+    def test_validar_ligacao_solicitada(
+        self,
+    ):
+        """
+        Uma Ligação solicitada corretamente
+        deve ser válida.
+        """
+
+        ligacao = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+            )
+        )
+
+        resultado = validar_ligacao(
+            ligacao
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+    def test_status_ligacao_invalido(
+        self,
+    ):
+        """
+        Um status não oficial deve ser rejeitado.
+        """
+
+        ligacao = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+            )
+        )
+
+        ligacao["status"] = "CANCELADA"
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Status de Ligação inválido",
+        ):
+            validar_ligacao(
+                ligacao
+            )
+
+    def test_ligacao_campo_obrigatorio_ausente(
+        self,
+    ):
+        """
+        Uma estrutura incompleta
+        deve ser rejeitada.
+        """
+
+        ligacao = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+            )
+        )
+
+        del ligacao["protocolo"]
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "campo ausente",
+        ):
+            validar_ligacao(
+                ligacao
+            )
+
+    def test_ligacao_solicitada_nao_pode_ter_agendamento(
+        self,
+    ):
+        """
+        Uma Ligação ainda solicitada não pode
+        possuir dados de agendamento.
+        """
+
+        ligacao = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+            )
+        )
+
+        ligacao["data_agendamento"] = (
+            "2026-09-10"
+        )
+
+        ligacao[
+            "responsavel_agendamento"
+        ] = "Carlos Souza"
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "não pode possuir",
+        ):
+            validar_ligacao(
+                ligacao
+            )
+
+    def test_operacoes_campo_deve_validar_ligacao(
+        self,
+    ):
+        """
+        A validação das Operações de Campo deve
+        validar a Ligação armazenada.
+        """
+
+        operacoes_campo = (
+            criar_dados_operacoes_campo()
+        )
+
+        operacoes_campo["ligacao"] = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+            )
+        )
+
+        resultado = validar_operacoes_campo(
+            operacoes_campo
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+class TestAgendamentoLigacao(
+    unittest.TestCase
+):
+    """
+    Testes do agendamento da Ligação.
+    """
+
+    def setUp(self):
+        self.ligacao = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+                observacoes=(
+                    "Aguardando agendamento."
+                ),
+            )
+        )
+
+    def test_preparar_agendamento_ligacao(
+        self,
+    ):
+        resultado = preparar_agendamento_ligacao(
+            ligacao=self.ligacao,
+            data_agendamento="2026-09-10",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+            observacoes="Ligação agendada.",
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusLigacao.AGENDADA.value,
+        )
+
+        self.assertEqual(
+            resultado["data_agendamento"],
+            "2026-09-10",
+        )
+
+        self.assertEqual(
+            resultado[
+                "responsavel_agendamento"
+            ],
+            "Carlos Souza",
+        )
+
+    def test_agendamento_nao_deve_alterar_original(
+        self,
+    ):
+        preparar_agendamento_ligacao(
+            ligacao=self.ligacao,
+            data_agendamento="2026-09-10",
+            responsavel_agendamento=(
+                "Carlos Souza"
+            ),
+        )
+
+        self.assertEqual(
+            self.ligacao["status"],
+            StatusLigacao.SOLICITADA.value,
+        )
+
+        self.assertIsNone(
+            self.ligacao["data_agendamento"]
+        )
+
+    def test_agendamento_anterior_a_solicitacao(
+        self,
+    ):
+        with self.assertRaisesRegex(
+            ValueError,
+            "anterior",
+        ):
+            preparar_agendamento_ligacao(
+                ligacao=self.ligacao,
+                data_agendamento="2026-09-04",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+
+    def test_nao_deve_agendar_duas_vezes(
+        self,
+    ):
+        ligacao_agendada = (
+            preparar_agendamento_ligacao(
+                ligacao=self.ligacao,
+                data_agendamento="2026-09-10",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "solicitada",
+        ):
+            preparar_agendamento_ligacao(
+                ligacao=ligacao_agendada,
+                data_agendamento="2026-09-11",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+
+class TestConclusaoLigacao(
+    unittest.TestCase
+):
+    """
+    Testes da conclusão da Ligação
+    e Energização.
+    """
+
+    def setUp(self):
+        ligacao_solicitada = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+                observacoes=(
+                    "Aguardando execução."
+                ),
+            )
+        )
+
+        self.ligacao = (
+            preparar_agendamento_ligacao(
+                ligacao=ligacao_solicitada,
+                data_agendamento="2026-09-10",
+                responsavel_agendamento=(
+                    "Carlos Souza"
+                ),
+            )
+        )
+
+    def test_preparar_conclusao_ligacao(
+        self,
+    ):
+        resultado = preparar_conclusao_ligacao(
+            ligacao=self.ligacao,
+            data_ligacao="2026-09-10",
+            responsavel_ligacao=(
+                "Equipe da Concessionária"
+            ),
+            observacoes=(
+                "Sistema energizado."
+            ),
+        )
+
+        self.assertEqual(
+            resultado["status"],
+            StatusLigacao.CONCLUIDA.value,
+        )
+
+        self.assertEqual(
+            resultado["data_ligacao"],
+            "2026-09-10",
+        )
+
+        self.assertEqual(
+            resultado[
+                "responsavel_ligacao"
+            ],
+            "Equipe da Concessionária",
+        )
+
+    def test_conclusao_nao_deve_alterar_original(
+        self,
+    ):
+        preparar_conclusao_ligacao(
+            ligacao=self.ligacao,
+            data_ligacao="2026-09-10",
+            responsavel_ligacao=(
+                "Equipe da Concessionária"
+            ),
+        )
+
+        self.assertEqual(
+            self.ligacao["status"],
+            StatusLigacao.AGENDADA.value,
+        )
+
+        self.assertIsNone(
+            self.ligacao["data_ligacao"]
+        )
+
+    def test_nao_deve_concluir_ligacao_solicitada(
+        self,
+    ):
+        ligacao_solicitada = (
+            criar_dados_ligacao_solicitada(
+                data_solicitacao="2026-09-05",
+                responsavel_solicitacao=(
+                    "Ana Lima"
+                ),
+                protocolo="LIG-2026-001",
+            )
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "agendada",
+        ):
+            preparar_conclusao_ligacao(
+                ligacao=ligacao_solicitada,
+                data_ligacao="2026-09-10",
+                responsavel_ligacao=(
+                    "Equipe da Concessionária"
+                ),
+            )
+
+    def test_ligacao_nao_pode_anteceder_agendamento(
+        self,
+    ):
+        with self.assertRaisesRegex(
+            ValueError,
+            "anterior",
+        ):
+            preparar_conclusao_ligacao(
+                ligacao=self.ligacao,
+                data_ligacao="2026-09-09",
+                responsavel_ligacao=(
+                    "Equipe da Concessionária"
+                ),
+            )
+
+    def test_nao_deve_concluir_ligacao_duas_vezes(
+        self,
+    ):
+        ligacao_concluida = (
+            preparar_conclusao_ligacao(
+                ligacao=self.ligacao,
+                data_ligacao="2026-09-10",
+                responsavel_ligacao=(
+                    "Equipe da Concessionária"
+                ),
+            )
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "agendada",
+        ):
+            preparar_conclusao_ligacao(
+                ligacao=ligacao_concluida,
+                data_ligacao="2026-09-11",
+                responsavel_ligacao=(
+                    "Equipe da Concessionária"
+                ),
             )
 
 class TestVistoria(
