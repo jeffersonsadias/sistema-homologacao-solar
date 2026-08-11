@@ -103,6 +103,8 @@ def buscar_projetos_por_status(
 
 def criar_dados_projeto(
     codigo,
+    codigo_empresa,
+    codigo_concessionaria,
     codigo_cliente,
     distribuidora,
     potencia,
@@ -117,12 +119,13 @@ def criar_dados_projeto(
 
     return {
         "codigo": codigo,
+        "codigo_empresa": codigo_empresa,
+        "codigo_concessionaria": codigo_concessionaria,
         "cliente": codigo_cliente,
         "distribuidora": distribuidora,
         "potencia": potencia,
         "status": status_inicial,
     }
-
 
 def criar_dados_projeto_a_partir_do_orcamento(
     codigo,
@@ -138,6 +141,8 @@ def criar_dados_projeto_a_partir_do_orcamento(
 
     return {
         "codigo": codigo,
+        "codigo_empresa": orcamento["codigo_empresa"],
+        "codigo_concessionaria": orcamento["codigo_concessionaria"],
         "cliente": orcamento["cliente"],
         "orcamento_origem": orcamento["codigo"],
         "distribuidora": (

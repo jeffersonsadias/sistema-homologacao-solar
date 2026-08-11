@@ -34,7 +34,6 @@ def buscar_orcamento_por_codigo(orcamentos, codigo):
 
     return None
 
-
 def codigo_orcamento_existe(orcamentos, codigo):
     """
     Verifica se já existe um Orçamento
@@ -49,9 +48,10 @@ def codigo_orcamento_existe(orcamentos, codigo):
         is not None
     )
 
-
 def criar_dados_orcamento(
     codigo,
+    codigo_empresa,
+    codigo_concessionaria,
     codigo_cliente,
     dimensionamento,
     modulos,
@@ -69,6 +69,8 @@ def criar_dados_orcamento(
 
     return {
         "codigo": codigo,
+        "codigo_empresa": codigo_empresa,
+        "codigo_concessionaria": codigo_concessionaria,
         "cliente": codigo_cliente,
         "dimensionamento": dimensionamento.copy(),
         "modulos": modulos.copy(),
@@ -77,7 +79,6 @@ def criar_dados_orcamento(
         "comercial": comercial.copy(),
         "status": status_inicial,
     }
-
 
 def orcamento_pode_ser_convertido(orcamento):
     """

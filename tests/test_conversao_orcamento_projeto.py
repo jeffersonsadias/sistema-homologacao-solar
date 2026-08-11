@@ -25,9 +25,9 @@ class TestConversaoOrcamentoProjeto(unittest.TestCase):
 
         self.orcamento_aprovado = {
             "codigo": 10,
-
+            "codigo_empresa": 50,
+            "codigo_concessionaria": 20,
             "cliente": 3,
-
             "dimensionamento": {
                 "consumo_medio_kwh": 650.0,
                 "potencia_prevista_kwp": 5.5,
@@ -90,6 +90,16 @@ class TestConversaoOrcamentoProjeto(unittest.TestCase):
         self.assertEqual(
             projeto_criado["codigo"],
             1,
+        )
+
+        self.assertEqual(
+            projeto_criado["codigo_empresa"],
+            50,
+        )
+
+        self.assertEqual(
+            projeto_criado["codigo_concessionaria"],
+            20,
         )
 
         self.assertEqual(

@@ -116,6 +116,8 @@ class TestOrcamentosDominio(unittest.TestCase):
 
         resultado = criar_dados_orcamento(
             codigo=1,
+            codigo_empresa=10,
+            codigo_concessionaria=20,
             codigo_cliente=3,
             dimensionamento=dimensionamento,
             modulos=modulos,
@@ -128,6 +130,16 @@ class TestOrcamentosDominio(unittest.TestCase):
         self.assertEqual(
             resultado["codigo"],
             1,
+        )
+
+        self.assertEqual(
+            resultado["codigo_empresa"],
+            10,
+        )
+
+        self.assertEqual(
+            resultado["codigo_concessionaria"],
+            20,
         )
 
         self.assertEqual(
@@ -201,6 +213,8 @@ class TestOrcamentosDominio(unittest.TestCase):
 
         resultado = criar_dados_orcamento(
             codigo=1,
+            codigo_empresa=10,
+            codigo_concessionaria=20,
             codigo_cliente=3,
             dimensionamento=dimensionamento,
             modulos=modulos,
@@ -268,7 +282,6 @@ class TestOrcamentosDominio(unittest.TestCase):
                 orcamento
             )
         )
-
 
 if __name__ == "__main__":
     unittest.main()

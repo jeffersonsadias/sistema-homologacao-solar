@@ -14,8 +14,10 @@ A coleção de Projetos é recebida por parâmetro.
 """
 
 from app import clientes
-from app import utils
+from app import concessionarias
+from app import empresas
 from app import status
+from app import utils
 
 from app.dominio.projetos import (
     buscar_projeto_por_codigo,
@@ -26,6 +28,74 @@ from app.infraestrutura.repositorio_projetos_json import (
     salvar_projetos,
 )
 
+def _selecionar_empresa_projeto():
+    """
+    Solicita a Empresa responsável
+    pelo novo Projeto.
+
+    Somente uma Empresa existente e ativa
+    pode originar um Projeto manual.
+    """
+
+    codigo_empresa = utils.ler_int(
+        "Código da Empresa responsável: "
+    )
+
+    try:
+        empresa = empresas.obter_empresa(
+            codigo_empresa
+        )
+
+    except ValueError as erro:
+        print(
+            f"\nNão foi possível selecionar "
+            f"a Empresa: {erro}"
+        )
+
+        return None
+
+    if not empresas.empresa_esta_ativa(
+        codigo_empresa
+    ):
+        print(
+            "\nNão é possível criar um Projeto "
+            "para uma Empresa inativa."
+        )
+
+        return None
+
+    return empresa
+
+def _selecionar_concessionaria_projeto():
+    """
+    Solicita a Concessionária responsável
+    pelo novo Projeto.
+
+    Somente uma Concessionária cadastrada
+    pode ser vinculada ao Projeto.
+    """
+
+    codigo_concessionaria = utils.ler_int(
+        "Código da Concessionária: "
+    )
+
+    try:
+        concessionaria = (
+            concessionarias
+            .obter_concessionaria(
+                codigo_concessionaria
+            )
+        )
+
+    except ValueError as erro:
+        print(
+            "\nNão foi possível selecionar "
+            f"a Concessionária: {erro}"
+        )
+
+        return None
+
+    return concessionaria
 
 def cadastrar_projeto(lista_projetos):
     """
@@ -38,15 +108,25 @@ def cadastrar_projeto(lista_projetos):
 
     print("\n=== Cadastro de Projeto ===")
 
+    empresa = _selecionar_empresa_projeto()
+
+    if empresa is None:
+        return None
+
     cliente = clientes.selecionar_cliente()
 
     if cliente is None:
         print("\nCadastre o cliente antes de criar o projeto.")
         return None
 
-    codigo = utils.gerar_proximo_codigo(lista_projetos)
+    concessionaria = (
+        _selecionar_concessionaria_projeto()
+    )
 
-    distribuidora = input("Distribuidora: ")
+    if concessionaria is None:
+        return None
+
+    codigo = utils.gerar_proximo_codigo(lista_projetos)
 
     potencia = utils.ler_float(
         "Potência do sistema (kWp): "
@@ -54,8 +134,10 @@ def cadastrar_projeto(lista_projetos):
 
     projeto = criar_dados_projeto(
         codigo=codigo,
+        codigo_empresa=empresa["codigo"],
+        codigo_concessionaria=concessionaria.codigo,
         codigo_cliente=cliente["codigo"],
-        distribuidora=distribuidora,
+        distribuidora=concessionaria.nome,
         potencia=potencia,
         status_inicial=status.STATUS_INICIAL,
     )
@@ -67,7 +149,6 @@ def cadastrar_projeto(lista_projetos):
     print("\nProjeto cadastrado com sucesso!")
 
     return projeto
-
 
 def listar_projetos(lista_projetos):
     """
@@ -84,7 +165,6 @@ def listar_projetos(lista_projetos):
         mostrar_projeto(projeto)
 
     return None
-
 
 def mostrar_projeto(projeto):
     """
@@ -119,7 +199,6 @@ def mostrar_projeto(projeto):
     )
 
     return None
-
 
 def alterar_status(lista_projetos):
     """

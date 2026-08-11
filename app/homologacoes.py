@@ -215,6 +215,24 @@ def _validar_dependencias_da_homologacao(
             f"{codigo_projeto} não encontrado."
         )
 
+    if (
+        projeto.get("codigo_empresa")
+        != codigo_empresa
+    ):
+        raise ValueError(
+            "O Projeto não pertence "
+            "à Empresa informada."
+        )
+
+    if (
+        projeto.get("codigo_concessionaria")
+        != codigo_concessionaria
+    ):
+        raise ValueError(
+            "A Concessionária informada não corresponde "
+            "à Concessionária vinculada ao Projeto."
+        )
+
     concessionarias.obter_concessionaria(
         codigo_concessionaria
     )

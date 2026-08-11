@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app.interface import orcamentos_interface
 
@@ -61,8 +61,18 @@ class TestOrcamentosInterface(unittest.TestCase):
         "app.interface.orcamentos_interface."
         "clientes.selecionar_cliente"
     )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_selecionar_concessionaria_orcamento"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_selecionar_empresa_orcamento"
+    )
     def test_cadastrar_orcamento(
         self,
+        mock_selecionar_empresa,
+        mock_selecionar_concessionaria,
         mock_selecionar_cliente,
         mock_gerar_codigo,
         mock_dimensionamento,
@@ -77,6 +87,23 @@ class TestOrcamentosInterface(unittest.TestCase):
         Deve criar, adicionar e salvar
         um novo Orçamento.
         """
+
+        empresa = {
+            "codigo": 50,
+            "nome": "Solar Alfa",
+        }
+
+        mock_selecionar_empresa.return_value = (
+            empresa
+        )
+
+        concessionaria = Mock()
+        concessionaria.codigo = 20
+        concessionaria.nome = "Neoenergia Coelba"
+
+        mock_selecionar_concessionaria.return_value = (
+            concessionaria
+        )
 
         cliente = {
             "codigo": 10,
@@ -101,7 +128,6 @@ class TestOrcamentosInterface(unittest.TestCase):
 
         local = {
             "codigo_uc": "123",
-            "distribuidora": "Coelba",
             "tipo_telhado": "Cerâmico",
         }
 
@@ -113,6 +139,8 @@ class TestOrcamentosInterface(unittest.TestCase):
 
         orcamento_criado = {
             "codigo": 1,
+            "codigo_empresa": 50,
+            "codigo_concessionaria": 20,
             "cliente": 10,
             "dimensionamento": dimensionamento,
             "modulos": modulos,
@@ -139,6 +167,8 @@ class TestOrcamentosInterface(unittest.TestCase):
 
         mock_criar_dados.assert_called_once_with(
             codigo=1,
+            codigo_empresa=50,
+            codigo_concessionaria=20,
             codigo_cliente=10,
             dimensionamento=dimensionamento,
             modulos=modulos,
@@ -150,6 +180,11 @@ class TestOrcamentosInterface(unittest.TestCase):
                 .status_orcamento
                 .STATUS_INICIAL
             ),
+        )
+
+        self.assertEqual(
+            local["distribuidora"],
+            "Neoenergia Coelba",
         )
 
         self.assertEqual(
@@ -170,8 +205,54 @@ class TestOrcamentosInterface(unittest.TestCase):
         "app.interface.orcamentos_interface."
         "clientes.selecionar_cliente"
     )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_selecionar_empresa_orcamento",
+        return_value=None,
+    )
+    def test_cadastrar_orcamento_sem_empresa(
+        self,
+        mock_selecionar_empresa,
+        mock_selecionar_cliente,
+    ):
+        """
+        Não deve continuar o cadastro
+        quando não houver Empresa válida.
+        """
+
+        resultado = (
+            orcamentos_interface
+            .cadastrar_orcamento(
+                self.orcamentos
+            )
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        self.assertEqual(
+            self.orcamentos,
+            [],
+        )
+
+        mock_selecionar_cliente.assert_not_called()
+
+    @patch(
+        "app.interface.orcamentos_interface."
+        "clientes.selecionar_cliente"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_selecionar_empresa_orcamento",
+        return_value={
+            "codigo": 50,
+            "nome": "Solar Alfa",
+        },
+    )
     def test_cadastrar_orcamento_sem_cliente(
         self,
+        mock_selecionar_empresa,
         mock_selecionar_cliente,
     ):
         """
@@ -191,6 +272,226 @@ class TestOrcamentosInterface(unittest.TestCase):
         self.assertEqual(
             self.orcamentos,
             [],
+        )
+
+    @patch(
+        "app.interface.orcamentos_interface."
+        "utils.gerar_proximo_codigo"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_selecionar_concessionaria_orcamento",
+        return_value=None,
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "clientes.selecionar_cliente",
+        return_value={
+            "codigo": 10,
+            "nome": "Cliente Teste",
+        },
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "_selecionar_empresa_orcamento",
+        return_value={
+            "codigo": 50,
+            "nome": "Solar Alfa",
+        },
+    )
+    def test_cadastrar_orcamento_sem_concessionaria(
+        self,
+        mock_selecionar_empresa,
+        mock_selecionar_cliente,
+        mock_selecionar_concessionaria,
+        mock_gerar_codigo,
+    ):
+        """
+        Não deve continuar o cadastro quando
+        não houver Concessionária válida.
+        """
+
+        resultado = (
+            orcamentos_interface
+            .cadastrar_orcamento(
+                self.orcamentos
+            )
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        self.assertEqual(
+            self.orcamentos,
+            [],
+        )
+
+        mock_gerar_codigo.assert_not_called()
+
+    @patch(
+        "app.interface.orcamentos_interface."
+        "empresas.empresa_esta_ativa",
+        return_value=True,
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "empresas.obter_empresa"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "utils.ler_int",
+        return_value=10,
+    )
+    def test_selecionar_empresa_orcamento(
+        self,
+        mock_ler_int,
+        mock_obter_empresa,
+        mock_empresa_ativa,
+    ):
+        empresa = {
+            "codigo": 10,
+            "nome": "Solar Alfa",
+        }
+
+        mock_obter_empresa.return_value = (
+            empresa
+        )
+
+        resultado = (
+            orcamentos_interface
+            ._selecionar_empresa_orcamento()
+        )
+
+        self.assertIs(
+            resultado,
+            empresa,
+        )
+
+        mock_obter_empresa.assert_called_once_with(
+            10
+        )
+
+        mock_empresa_ativa.assert_called_once_with(
+            10
+        )
+
+    @patch(
+        "app.interface.orcamentos_interface."
+        "empresas.empresa_esta_ativa",
+        return_value=False,
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "empresas.obter_empresa",
+        return_value={
+            "codigo": 10,
+        },
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "utils.ler_int",
+        return_value=10,
+    )
+    def test_nao_deve_selecionar_empresa_inativa(
+        self,
+        mock_ler_int,
+        mock_obter_empresa,
+        mock_empresa_ativa,
+    ):
+        resultado = (
+            orcamentos_interface
+            ._selecionar_empresa_orcamento()
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+    @patch(
+        "app.interface.orcamentos_interface."
+        "concessionarias.obter_concessionaria"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "utils.ler_int",
+        return_value=20,
+    )
+    def test_selecionar_concessionaria_orcamento(
+        self,
+        mock_ler_int,
+        mock_obter_concessionaria,
+    ):
+        """
+        Deve retornar a Concessionária
+        encontrada pela fachada.
+        """
+
+        concessionaria = Mock()
+        concessionaria.codigo = 20
+        concessionaria.nome = "Neoenergia Coelba"
+
+        mock_obter_concessionaria.return_value = (
+            concessionaria
+        )
+
+        resultado = (
+            orcamentos_interface
+            ._selecionar_concessionaria_orcamento()
+        )
+
+        self.assertIs(
+            resultado,
+            concessionaria,
+        )
+
+        mock_obter_concessionaria.assert_called_once_with(
+            20
+        )
+
+    @patch(
+        "builtins.print"
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "concessionarias.obter_concessionaria",
+        side_effect=ValueError(
+            "Concessionária não encontrada."
+        ),
+    )
+    @patch(
+        "app.interface.orcamentos_interface."
+        "utils.ler_int",
+        return_value=20,
+    )
+    def test_nao_deve_selecionar_concessionaria_inexistente(
+        self,
+        mock_ler_int,
+        mock_obter_concessionaria,
+        mock_print,
+    ):
+        """
+        Deve retornar None quando a
+        Concessionária não existir.
+        """
+
+        resultado = (
+            orcamentos_interface
+            ._selecionar_concessionaria_orcamento()
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        mock_obter_concessionaria.assert_called_once_with(
+            20
+        )
+
+        mock_print.assert_any_call(
+            "\nNão foi possível selecionar "
+            "a Concessionária: "
+            "Concessionária não encontrada."
         )
 
     # ========================================================
@@ -517,14 +818,6 @@ class TestOrcamentosInterface(unittest.TestCase):
         "homologacoes.criar_homologacao"
     )
     @patch(
-        "app.interface.orcamentos_interface."
-        "utils.ler_int",
-        side_effect=[
-            1,
-            2,
-        ],
-    )
-    @patch(
         "builtins.input",
         side_effect=[
             "2026-08-04",
@@ -541,7 +834,6 @@ class TestOrcamentosInterface(unittest.TestCase):
         self,
         mock_confirmar,
         mock_input,
-        mock_ler_int,
         mock_criar_homologacao,
     ):
         """
@@ -551,6 +843,8 @@ class TestOrcamentosInterface(unittest.TestCase):
 
         projeto = {
             "codigo": 50,
+            "codigo_empresa": 1,
+            "codigo_concessionaria": 2,
         }
 
         homologacao_criada = {
@@ -594,14 +888,6 @@ class TestOrcamentosInterface(unittest.TestCase):
         ),
     )
     @patch(
-        "app.interface.orcamentos_interface."
-        "utils.ler_int",
-        side_effect=[
-            1,
-            2,
-        ],
-    )
-    @patch(
         "builtins.input",
         side_effect=[
             "2026-08-04",
@@ -618,7 +904,6 @@ class TestOrcamentosInterface(unittest.TestCase):
         self,
         mock_confirmar,
         mock_input,
-        mock_ler_int,
         mock_criar_homologacao,
         mock_print,
     ):
@@ -629,6 +914,8 @@ class TestOrcamentosInterface(unittest.TestCase):
 
         projeto = {
             "codigo": 50,
+            "codigo_empresa": 1,
+            "codigo_concessionaria": 2,
             "status": "Aguardando documentação",
         }
 

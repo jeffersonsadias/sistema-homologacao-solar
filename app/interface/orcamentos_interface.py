@@ -11,6 +11,8 @@ A coleção é sempre recebida por parâmetro.
 """
 
 from app import clientes
+from app import concessionarias
+from app import empresas
 from app import homologacoes
 from app import projetos
 from app import status_orcamento
@@ -108,12 +110,12 @@ def _iniciar_homologacao_do_projeto(
         "\n=== Iniciar Homologação do Projeto ==="
     )
 
-    codigo_empresa = utils.ler_int(
-        "Código da Empresa responsável: "
+    codigo_empresa = (
+        projeto_criado["codigo_empresa"]
     )
 
-    codigo_concessionaria = utils.ler_int(
-        "Código da Concessionária: "
+    codigo_concessionaria = (
+        projeto_criado["codigo_concessionaria"]
     )
 
     data_abertura = input(
@@ -195,7 +197,6 @@ def _coletar_dimensionamento():
         "potencia_prevista_kwp": potencia_prevista_kwp,
     }
 
-
 def _coletar_modulos():
     """
     Solicita os dados dos módulos fotovoltaicos.
@@ -213,7 +214,6 @@ def _coletar_modulos():
         "quantidade": quantidade,
         "fabricante": fabricante,
     }
-
 
 def _coletar_inversores():
     """
@@ -238,7 +238,6 @@ def _coletar_inversores():
         "tensao": tensao,
     }
 
-
 def _coletar_local_instalacao():
     """
     Solicita os dados do local de instalação.
@@ -248,20 +247,14 @@ def _coletar_local_instalacao():
         "Código da unidade consumidora (UC): "
     ).strip()
 
-    distribuidora = input(
-        "Distribuidora de energia: "
-    ).strip()
-
     tipo_telhado = input(
         "Tipo de telhado: "
     ).strip()
 
     return {
         "codigo_uc": codigo_uc,
-        "distribuidora": distribuidora,
         "tipo_telhado": tipo_telhado,
     }
-
 
 def _coletar_dados_comerciais():
     """
@@ -286,6 +279,74 @@ def _coletar_dados_comerciais():
         "prazo_instalacao_dias": prazo_instalacao_dias,
     }
 
+def _selecionar_empresa_orcamento():
+    """
+    Solicita a Empresa responsável
+    pelo Orçamento.
+
+    Somente uma Empresa existente e ativa
+    pode originar um novo Orçamento.
+    """
+
+    codigo_empresa = utils.ler_int(
+        "Código da Empresa responsável: "
+    )
+
+    try:
+        empresa = empresas.obter_empresa(
+            codigo_empresa
+        )
+
+    except ValueError as erro:
+        print(
+            f"\nNão foi possível selecionar "
+            f"a Empresa: {erro}"
+        )
+
+        return None
+
+    if not empresas.empresa_esta_ativa(
+        codigo_empresa
+    ):
+        print(
+            "\nNão é possível criar um Orçamento "
+            "para uma Empresa inativa."
+        )
+
+        return None
+
+    return empresa
+
+def _selecionar_concessionaria_orcamento():
+    """
+    Solicita a Concessionária responsável
+    pela unidade consumidora do Orçamento.
+
+    Somente uma Concessionária cadastrada
+    pode ser vinculada ao Orçamento.
+    """
+
+    codigo_concessionaria = utils.ler_int(
+        "Código da Concessionária: "
+    )
+
+    try:
+        concessionaria = (
+            concessionarias
+            .obter_concessionaria(
+                codigo_concessionaria
+            )
+        )
+
+    except ValueError as erro:
+        print(
+            "\nNão foi possível selecionar "
+            f"a Concessionária: {erro}"
+        )
+
+        return None
+
+    return concessionaria
 
 def cadastrar_orcamento(lista_orcamentos):
     """
@@ -293,6 +354,11 @@ def cadastrar_orcamento(lista_orcamentos):
     """
 
     print("\n=== Cadastro de Orçamento ===")
+
+    empresa = _selecionar_empresa_orcamento()
+
+    if empresa is None:
+        return None
 
     cliente = clientes.selecionar_cliente()
 
@@ -303,6 +369,13 @@ def cadastrar_orcamento(lista_orcamentos):
         )
         return None
 
+    concessionaria = (
+        _selecionar_concessionaria_orcamento()
+    )
+
+    if concessionaria is None:
+        return None
+
     codigo = utils.gerar_proximo_codigo(
         lista_orcamentos
     )
@@ -310,11 +383,19 @@ def cadastrar_orcamento(lista_orcamentos):
     dimensionamento = _coletar_dimensionamento()
     modulos = _coletar_modulos()
     inversores = _coletar_inversores()
+
     local_instalacao = _coletar_local_instalacao()
+
+    local_instalacao["distribuidora"] = (
+        concessionaria.nome
+    )
+
     comercial = _coletar_dados_comerciais()
 
     orcamento = criar_dados_orcamento(
         codigo=codigo,
+        codigo_empresa=empresa["codigo"],
+        codigo_concessionaria=concessionaria.codigo,
         codigo_cliente=cliente["codigo"],
         dimensionamento=dimensionamento,
         modulos=modulos,
@@ -336,7 +417,6 @@ def cadastrar_orcamento(lista_orcamentos):
     print(f"Código do orçamento: {codigo}")
 
     return orcamento
-
 
 def mostrar_orcamento(orcamento):
     """
@@ -429,7 +509,6 @@ def mostrar_orcamento(orcamento):
 
     print("==============================")
 
-
 def listar_orcamentos(lista_orcamentos):
     """
     Lista todos os Orçamentos cadastrados.
@@ -445,7 +524,6 @@ def listar_orcamentos(lista_orcamentos):
         mostrar_orcamento(
             orcamento
         )
-
 
 def selecionar_orcamento(lista_orcamentos):
     """
@@ -466,7 +544,6 @@ def selecionar_orcamento(lista_orcamentos):
         return None
 
     return orcamento
-
 
 def alterar_status(lista_orcamentos):
     """
@@ -523,7 +600,6 @@ def alterar_status(lista_orcamentos):
     print(f"Novo status: {novo_status}")
 
     return orcamento
-
 
 def converter_para_projeto(lista_orcamentos):
     """

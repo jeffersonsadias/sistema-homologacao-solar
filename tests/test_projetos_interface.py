@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app import status
 from app.interface import projetos_interface
@@ -39,15 +39,23 @@ class TestProjetosInterface(unittest.TestCase):
         "app.interface.projetos_interface."
         "utils.ler_float"
     )
-    @patch("builtins.input")
     @patch(
         "app.interface.projetos_interface."
         "clientes.selecionar_cliente"
     )
+    @patch(
+        "app.interface.projetos_interface."
+        "_selecionar_concessionaria_projeto"
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "_selecionar_empresa_projeto"
+    )
     def test_cadastrar_projeto(
         self,
+        mock_selecionar_empresa,
+        mock_selecionar_concessionaria,
         mock_selecionar_cliente,
-        mock_input,
         mock_ler_float,
         mock_criar_dados_projeto,
         mock_salvar_projetos,
@@ -57,18 +65,33 @@ class TestProjetosInterface(unittest.TestCase):
         o salvamento da lista atualizada.
         """
 
-        mock_selecionar_cliente.return_value = (
-            self.cliente
+        empresa = {
+            "codigo": 50,
+            "nome": "Solar Alfa",
+        }
+
+        mock_selecionar_empresa.return_value = (
+            empresa
         )
 
-        mock_input.return_value = (
-            "Neoenergia Coelba"
+        concessionaria = Mock()
+        concessionaria.codigo = 20
+        concessionaria.nome = "Neoenergia Coelba"
+
+        mock_selecionar_concessionaria.return_value = (
+            concessionaria
+        )
+
+        mock_selecionar_cliente.return_value = (
+            self.cliente
         )
 
         mock_ler_float.return_value = 5.5
 
         projeto_esperado = {
             "codigo": 1,
+            "codigo_empresa": 50,
+            "codigo_concessionaria": 20,
             "cliente": 3,
             "distribuidora": "Neoenergia Coelba",
             "potencia": 5.5,
@@ -97,6 +120,8 @@ class TestProjetosInterface(unittest.TestCase):
 
         mock_criar_dados_projeto.assert_called_once_with(
             codigo=1,
+            codigo_empresa=50,
+            codigo_concessionaria=20,
             codigo_cliente=3,
             distribuidora="Neoenergia Coelba",
             potencia=5.5,
@@ -109,14 +134,60 @@ class TestProjetosInterface(unittest.TestCase):
 
     @patch(
         "app.interface.projetos_interface."
+        "clientes.selecionar_cliente"
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "_selecionar_empresa_projeto",
+        return_value=None,
+    )
+    def test_cadastrar_projeto_sem_empresa(
+        self,
+        mock_selecionar_empresa,
+        mock_selecionar_cliente,
+    ):
+        """
+        Não deve continuar o cadastro
+        quando não houver Empresa válida.
+        """
+
+        resultado = (
+            projetos_interface
+            .cadastrar_projeto(
+                self.lista_projetos
+            )
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        self.assertEqual(
+            self.lista_projetos,
+            [],
+        )
+
+        mock_selecionar_cliente.assert_not_called()
+
+    @patch(
+        "app.interface.projetos_interface."
         "salvar_projetos"
     )
     @patch(
         "app.interface.projetos_interface."
         "clientes.selecionar_cliente"
     )
+    @patch(
+        "app.interface.projetos_interface."
+        "_selecionar_empresa_projeto",
+        return_value={
+            "codigo": 50,
+            "nome": "Solar Alfa",
+        },
+    )
     def test_cadastrar_projeto_sem_cliente(
         self,
+        mock_selecionar_empresa,
         mock_selecionar_cliente,
         mock_salvar_projetos,
     ):
@@ -141,6 +212,213 @@ class TestProjetosInterface(unittest.TestCase):
         )
 
         mock_salvar_projetos.assert_not_called()
+
+    @patch(
+        "app.interface.projetos_interface."
+        "utils.gerar_proximo_codigo"
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "_selecionar_concessionaria_projeto",
+        return_value=None,
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "clientes.selecionar_cliente",
+        return_value={
+            "codigo": 3,
+            "nome": "Cliente Teste",
+        },
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "_selecionar_empresa_projeto",
+        return_value={
+            "codigo": 50,
+            "nome": "Solar Alfa",
+        },
+    )
+    def test_cadastrar_projeto_sem_concessionaria(
+        self,
+        mock_selecionar_empresa,
+        mock_selecionar_cliente,
+        mock_selecionar_concessionaria,
+        mock_gerar_codigo,
+    ):
+        """
+        Não deve cadastrar Projeto quando
+        nenhuma Concessionária válida for selecionada.
+        """
+
+        resultado = (
+            projetos_interface.cadastrar_projeto(
+                self.lista_projetos
+            )
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        self.assertEqual(
+            self.lista_projetos,
+            [],
+        )
+
+        mock_gerar_codigo.assert_not_called()
+
+    @patch(
+        "app.interface.projetos_interface."
+        "empresas.empresa_esta_ativa",
+        return_value=True,
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "empresas.obter_empresa"
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "utils.ler_int",
+        return_value=10,
+    )
+    def test_selecionar_empresa_projeto(
+        self,
+        mock_ler_int,
+        mock_obter_empresa,
+        mock_empresa_ativa,
+    ):
+        empresa = {
+            "codigo": 10,
+            "nome": "Solar Alfa",
+        }
+
+        mock_obter_empresa.return_value = (
+            empresa
+        )
+
+        resultado = (
+            projetos_interface
+            ._selecionar_empresa_projeto()
+        )
+
+        self.assertIs(
+            resultado,
+            empresa,
+        )
+
+        mock_obter_empresa.assert_called_once_with(
+            10
+        )
+
+        mock_empresa_ativa.assert_called_once_with(
+            10
+        )
+
+    @patch(
+        "app.interface.projetos_interface."
+        "empresas.empresa_esta_ativa",
+        return_value=False,
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "empresas.obter_empresa",
+        return_value={
+            "codigo": 10,
+        },
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "utils.ler_int",
+        return_value=10,
+    )
+    def test_nao_deve_selecionar_empresa_inativa(
+        self,
+        mock_ler_int,
+        mock_obter_empresa,
+        mock_empresa_ativa,
+    ):
+        resultado = (
+            projetos_interface
+            ._selecionar_empresa_projeto()
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+    @patch(
+        "app.interface.projetos_interface."
+        "concessionarias.obter_concessionaria"
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "utils.ler_int",
+        return_value=20,
+    )
+    def test_selecionar_concessionaria_projeto(
+        self,
+        mock_ler_int,
+        mock_obter_concessionaria,
+    ):
+        concessionaria = Mock()
+        concessionaria.codigo = 20
+        concessionaria.nome = "Neoenergia Coelba"
+
+        mock_obter_concessionaria.return_value = (
+            concessionaria
+        )
+
+        resultado = (
+            projetos_interface
+            ._selecionar_concessionaria_projeto()
+        )
+
+        self.assertIs(
+            resultado,
+            concessionaria,
+        )
+
+        mock_obter_concessionaria.assert_called_once_with(
+            20
+        )
+
+    @patch("builtins.print")
+    @patch(
+        "app.interface.projetos_interface."
+        "concessionarias.obter_concessionaria",
+        side_effect=ValueError(
+            "Concessionária não encontrada."
+        ),
+    )
+    @patch(
+        "app.interface.projetos_interface."
+        "utils.ler_int",
+        return_value=20,
+    )
+    def test_nao_deve_selecionar_concessionaria_inexistente(
+        self,
+        mock_ler_int,
+        mock_obter_concessionaria,
+        mock_print,
+    ):
+        resultado = (
+            projetos_interface
+            ._selecionar_concessionaria_projeto()
+        )
+
+        self.assertIsNone(
+            resultado
+        )
+
+        mock_obter_concessionaria.assert_called_once_with(
+            20
+        )
+
+        mock_print.assert_any_call(
+            "\nNão foi possível selecionar "
+            "a Concessionária: "
+            "Concessionária não encontrada."
+        )
 
     @patch("builtins.print")
     def test_listar_projetos_lista_vazia(

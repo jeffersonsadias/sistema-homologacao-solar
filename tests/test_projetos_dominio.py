@@ -40,6 +40,8 @@ class TestProjetosDominio(unittest.TestCase):
 
         self.orcamento = {
             "codigo": 15,
+            "codigo_empresa": 50,
+            "codigo_concessionaria": 20,
             "cliente": 10,
             "local_instalacao": {
                 "distribuidora": "Neoenergia Coelba",
@@ -333,6 +335,8 @@ class TestProjetosDominio(unittest.TestCase):
 
         projeto = criar_dados_projeto(
             codigo=3,
+            codigo_empresa=50,
+            codigo_concessionaria=20,
             codigo_cliente=30,
             distribuidora="Neoenergia Coelba",
             potencia=10.5,
@@ -340,6 +344,8 @@ class TestProjetosDominio(unittest.TestCase):
         )
 
         self.assertEqual(projeto["codigo"], 3)
+        self.assertEqual(projeto["codigo_empresa"], 50)
+        self.assertEqual(projeto["codigo_concessionaria"], 20)
         self.assertEqual(projeto["cliente"], 30)
         self.assertEqual(
             projeto["distribuidora"],
@@ -363,6 +369,8 @@ class TestProjetosDominio(unittest.TestCase):
         )
 
         self.assertEqual(projeto["codigo"], 3)
+        self.assertEqual(projeto["codigo_empresa"], 50)
+        self.assertEqual(projeto["codigo_concessionaria"], 20)
         self.assertEqual(projeto["cliente"], 10)
         self.assertEqual(projeto["orcamento_origem"], 15)
 

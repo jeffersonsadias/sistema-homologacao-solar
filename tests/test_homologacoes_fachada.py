@@ -2039,6 +2039,8 @@ class TestHomologacoesFachada(unittest.TestCase):
 
         mock_buscar_projeto.return_value = {
             "codigo": 20,
+            "codigo_empresa": 10,
+            "codigo_concessionaria": 30,
         }
 
         homologacoes._validar_dependencias_da_homologacao(
@@ -2062,6 +2064,127 @@ class TestHomologacoesFachada(unittest.TestCase):
         mock_obter_concessionaria.assert_called_once_with(
             30
         )
+
+    @patch(
+        "app.homologacoes."
+        "concessionarias.obter_concessionaria"
+    )
+    @patch(
+        "app.homologacoes.projetos.buscar_projeto"
+    )
+    @patch(
+        "app.homologacoes.empresas.empresa_esta_ativa"
+    )
+    @patch(
+        "app.homologacoes.empresas.obter_empresa"
+    )
+    def test_projeto_de_outra_empresa_deve_ser_rejeitado(
+        self,
+        mock_obter_empresa,
+        mock_empresa_ativa,
+        mock_buscar_projeto,
+        mock_obter_concessionaria,
+    ):
+        """
+        Um Projeto pertencente a outra Empresa
+        não pode originar uma Homologação.
+        """
+
+        mock_empresa_ativa.return_value = True
+
+        mock_buscar_projeto.return_value = {
+            "codigo": 20,
+            "codigo_empresa": 99,
+            "codigo_concessionaria": 30,
+        }
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Projeto não pertence",
+        ):
+            (
+                homologacoes
+                ._validar_dependencias_da_homologacao(
+                    codigo_empresa=10,
+                    codigo_projeto=20,
+                    codigo_concessionaria=30,
+                )
+            )
+
+        mock_obter_empresa.assert_called_once_with(
+            10
+        )
+
+        mock_empresa_ativa.assert_called_once_with(
+            10
+        )
+
+        mock_buscar_projeto.assert_called_once_with(
+            20
+        )
+
+        mock_obter_concessionaria.assert_not_called()
+
+    @patch(
+        "app.homologacoes."
+        "concessionarias.obter_concessionaria"
+    )
+    @patch(
+        "app.homologacoes.projetos.buscar_projeto"
+    )
+    @patch(
+        "app.homologacoes.empresas.empresa_esta_ativa"
+    )
+    @patch(
+        "app.homologacoes.empresas.obter_empresa"
+    )
+    def test_concessionaria_diferente_do_projeto_deve_ser_rejeitada(
+        self,
+        mock_obter_empresa,
+        mock_empresa_ativa,
+        mock_buscar_projeto,
+        mock_obter_concessionaria,
+    ):
+        """
+        Uma Homologação não pode utilizar uma
+        Concessionária diferente daquela vinculada
+        ao Projeto.
+        """
+
+        mock_empresa_ativa.return_value = True
+
+        mock_buscar_projeto.return_value = {
+            "codigo": 20,
+            "codigo_empresa": 10,
+            "codigo_concessionaria": 40,
+        }
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Concessionária informada não corresponde",
+        ):
+            (
+                homologacoes
+                ._validar_dependencias_da_homologacao(
+                    codigo_empresa=10,
+                    codigo_projeto=20,
+                    codigo_concessionaria=30,
+                )
+            )
+
+        mock_obter_empresa.assert_called_once_with(
+            10
+        )
+
+        mock_empresa_ativa.assert_called_once_with(
+            10
+        )
+
+        mock_buscar_projeto.assert_called_once_with(
+            20
+        )
+
+        mock_obter_concessionaria.assert_not_called()
 
     @patch(
         "app.homologacoes.empresas.empresa_esta_ativa"
