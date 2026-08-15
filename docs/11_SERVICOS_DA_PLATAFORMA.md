@@ -1024,7 +1024,7 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 
 - [x] Tipos de Serviço / Catálogo Mestre
 - [x] Serviços oferecidos pelas Empresas
-- [ ] Status das entidades
+- [x] Status das entidades
 - [ ] Solicitação de Serviço
 - [ ] Proposta de Serviço
 - [ ] Contratação de Serviço
@@ -1097,7 +1097,6 @@ Status: CONCLUÍDA.
 
 Módulo implementado:
 
-```text
 app/dominio/tipos_servico.py
 
 ### 6.2.3 — Serviços oferecidos pelas Empresas
@@ -1106,7 +1105,6 @@ Status: CONCLUÍDA.
 
 Módulos concluídos nesta etapa:
 
-```text
 app/dominio/areas_atendimento.py
 app/dominio/servicos_empresa.py
 
@@ -1116,23 +1114,37 @@ A etapa de Serviços oferecidos pelas Empresas foi concluída após auditoria es
 
 A entidade `ServicoOfertadoEmpresa` representa o vínculo único entre:
 
-```text
 Empresa
 +
 Tipo de Serviço
 
 ### 6.2.4 — Status das entidades
 
+Status: CONCLUÍDA.
+
+Módulos implementados:
+
+app/dominio/status_solicitacao_servico.py
+app/dominio/status_proposta_servico.py
+app/dominio/status_contratacao_servico.py
+app/dominio/status_ordem_servico.py
+
+### 6.2.5 — Solicitação de Serviço
+
 Status: PRÓXIMA ETAPA.
 
 Objetivo:
+implementar a entidade `SolicitacaoServico` e suas regras locais de domínio, utilizando a máquina de estados formalizada na etapa 6.2.4.
 
-definir e implementar os estados e máquinas de estados necessários às entidades comerciais do ecossistema de Serviços antes da implementação de `SolicitacaoServico`.
+A implementação deverá preservar as decisões já aprovadas para:
 
-A prioridade inicial será revisar os estados já modelados para:
-
-```text
-Solicitação
-Proposta
-Contratação
-Ordem de Serviço
+- modalidade `DIRETA` e `ABERTA`;
+- origem da Solicitação;
+- vínculo com Cliente;
+- vínculo com Tipo de Serviço;
+- Empresa destinatária quando a Solicitação for direta;
+- dados técnicos específicos do serviço;
+- privacidade comercial;
+- distribuição posterior no marketplace;
+- histórico;
+- estados e transições.
