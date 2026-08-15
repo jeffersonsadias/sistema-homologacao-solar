@@ -410,7 +410,6 @@ A Área de Atendimento representa a cobertura geográfica associada a uma oferta
 
 Foi implementada como entidade própria:
 
-```text
 AREA_ATENDIMENTO
 
 modalidade
@@ -479,12 +478,10 @@ EXPIRADA
 
 Estados terminais:
 
-```text
 ENCERRADA_COM_CONTRATACAO
 ENCERRADA_SEM_CONTRATACAO
 CANCELADA
 EXPIRADA
-```
 
 Solicitações terminais não devem ser reabertas. Uma nova necessidade gera uma nova Solicitação.
 
@@ -494,13 +491,10 @@ Solicitações terminais não devem ser reabertas. Uma nova necessidade gera uma
 
 Estado inicial:
 
-```text
 EM_ELABORACAO
-```
 
 Estados:
 
-```text
 EM_ELABORACAO
 ENVIADA
 EM_REVISAO
@@ -510,17 +504,14 @@ RECUSADA
 NAO_SELECIONADA
 RETIRADA
 EXPIRADA
-```
 
 Estados terminais:
 
-```text
 ACEITA
 RECUSADA
 NAO_SELECIONADA
 RETIRADA
 EXPIRADA
-```
 
 `RECUSADA` representa rejeição explícita do Cliente.
 
@@ -534,14 +525,12 @@ O aceite é uma operação coordenada.
 
 Em uma Solicitação aberta:
 
-```text
 Proposta vencedora → ACEITA
 Demais propostas → NAO_SELECIONADA
 Solicitação → ENCERRADA_COM_CONTRATACAO
 Contratação → criada
 Contato → liberado somente para a vencedora
 Histórico → registrado
-```
 
 O aceite deve:
 
@@ -561,13 +550,10 @@ A Contratação nasce após o aceite.
 
 Estado inicial:
 
-```text
 EM_FORMALIZACAO
-```
 
 Estados:
 
-```text
 EM_FORMALIZACAO
 CONFIRMADA
 PROCESSO_GERADO
@@ -575,18 +561,15 @@ EM_ANDAMENTO
 CONCLUIDA
 CANCELADA
 EXPIRADA
-```
 
 A Contratação deve preservar um snapshot das condições aceitas:
 
-```text
 codigo_proposta
 versao_proposta_aceita
 valor_contratado
 prazo_contratado
 garantia_contratada
 condicoes_contratadas
-```
 
 ---
 
@@ -1020,12 +1003,12 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 
 ## 39. Roadmap de implementação
 
-### 6.2 — Domínio
+### 39.1 — Domínio
 
 - [x] Tipos de Serviço / Catálogo Mestre
 - [x] Serviços oferecidos pelas Empresas
 - [x] Status das entidades
-- [ ] Solicitação de Serviço
+- [x] Solicitação de Serviço
 - [ ] Proposta de Serviço
 - [ ] Contratação de Serviço
 - [ ] Ordem de Serviço Pós-venda
@@ -1033,30 +1016,30 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 - [ ] Movimentações e auditoria
 - [ ] Coordenação entre agregados
 
-### 6.3 — Persistência
+### 39.2 — Persistência
 
 - [ ] Repositórios
 - [ ] Serialização
 - [ ] Integridade dos relacionamentos
 
-### 6.4 — Fachadas
+### 39.3 — Fachadas
 
 - [ ] Operações de aplicação
 - [ ] Coordenação dos fluxos
 
-### 6.5 — Interfaces
+### 39.4 — Interfaces
 
 - [ ] Ambiente Empresa
 - [ ] Ambiente Cliente
 
-### 6.6 — Marketplace e indicadores
+### 39.5 — Marketplace e indicadores
 
 - [ ] Oportunidades
 - [ ] Propostas
 - [ ] Ranking futuro
 - [ ] Indicadores
 
-### 6.7 — Fechamento
+### 39.6 — Fechamento
 
 - [ ] Regressão completa
 - [ ] Documentação final
@@ -1068,7 +1051,7 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 
 ## 40. Registro de evolução
 
-### Fase 6.1 — Modelagem
+### Fase 40.1 — Modelagem
 
 Status: CONCLUÍDA.
 
@@ -1087,11 +1070,11 @@ Foram modelados:
 - encerramento;
 - histórico e auditoria.
 
-### Fase 6.2 — Implementação do domínio
+### Fase 40.2 — Implementação do domínio
 
 Status: EM ANDAMENTO.
 
-### 6.2.2 — Tipos / Catálogo Mestre de Serviços
+#### 40.2.2 — Tipos / Catálogo Mestre de Serviços
 
 Status: CONCLUÍDA.
 
@@ -1099,7 +1082,7 @@ Módulo implementado:
 
 app/dominio/tipos_servico.py
 
-### 6.2.3 — Serviços oferecidos pelas Empresas
+#### 40.2.3 — Serviços oferecidos pelas Empresas
 
 Status: CONCLUÍDA.
 
@@ -1108,7 +1091,7 @@ Módulos concluídos nesta etapa:
 app/dominio/areas_atendimento.py
 app/dominio/servicos_empresa.py
 
-#### Fechamento da 6.2.3
+##### Fechamento da 40.2.3
 
 A etapa de Serviços oferecidos pelas Empresas foi concluída após auditoria estrutural, revisão das regras de negócio e regressão completa do sistema.
 
@@ -1118,7 +1101,7 @@ Empresa
 +
 Tipo de Serviço
 
-### 6.2.4 — Status das entidades
+#### 40.2.4 — Status das entidades
 
 Status: CONCLUÍDA.
 
@@ -1129,22 +1112,12 @@ app/dominio/status_proposta_servico.py
 app/dominio/status_contratacao_servico.py
 app/dominio/status_ordem_servico.py
 
-### 6.2.5 — Solicitação de Serviço
+#### 40.2.5 — Solicitação de Serviço
 
-Status: PRÓXIMA ETAPA.
+Status: CONCLUÍDA.
 
-Objetivo:
-implementar a entidade `SolicitacaoServico` e suas regras locais de domínio, utilizando a máquina de estados formalizada na etapa 6.2.4.
+Módulo implementado:
 
-A implementação deverá preservar as decisões já aprovadas para:
+app/dominio/solicitacoes_servico.py
 
-- modalidade `DIRETA` e `ABERTA`;
-- origem da Solicitação;
-- vínculo com Cliente;
-- vínculo com Tipo de Serviço;
-- Empresa destinatária quando a Solicitação for direta;
-- dados técnicos específicos do serviço;
-- privacidade comercial;
-- distribuição posterior no marketplace;
-- histórico;
-- estados e transições.
+#### 40.2.6 — Proposta de Serviço
