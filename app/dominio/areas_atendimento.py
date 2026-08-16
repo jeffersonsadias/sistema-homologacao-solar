@@ -338,3 +338,109 @@ def criar_area_atendimento(
     raise ValorInvalido(
         "Modalidade da área de atendimento inválida."
     )
+
+def area_atende_localidade(
+    area,
+    municipio: str,
+    uf: str,
+    distancia_km=None,
+) -> bool:
+    """
+    Informa se uma Área de Atendimento
+    cobre determinada localidade.
+
+    Para modalidade RAIO, a distância deve
+    ser previamente calculada e informada.
+    """
+
+    if not isinstance(
+        area,
+        AreaAtendimento,
+    ):
+        raise ValorInvalido(
+            "Área de atendimento deve ser "
+            "uma AreaAtendimento válida."
+        )
+
+    municipio_normalizado = (
+        _normalizar_texto_obrigatorio(
+            municipio,
+            "Município",
+        )
+    )
+
+    uf_normalizada = _normalizar_uf(
+        uf
+    )
+
+    if (
+        area.modalidade
+        == ModalidadeAreaAtendimento.NACIONAL
+    ):
+        return True
+
+    if (
+        area.modalidade
+        == ModalidadeAreaAtendimento.MUNICIPIOS
+    ):
+        municipio_comparacao = (
+            municipio_normalizado.casefold()
+        )
+
+        return any(
+            municipio_atendido.casefold()
+            == municipio_comparacao
+            for municipio_atendido
+            in area.municipios
+        )
+
+    if (
+        area.modalidade
+        == ModalidadeAreaAtendimento.RAIO
+    ):
+        if distancia_km is None:
+            raise DadosObrigatoriosAusentes(
+                "Distância é obrigatória para "
+                "validar Área de Atendimento "
+                "por RAIO."
+            )
+
+        if (
+            isinstance(distancia_km, bool)
+            or not isinstance(
+                distancia_km,
+                (int, float),
+            )
+        ):
+            raise ValorInvalido(
+                "Distância deve ser numérica."
+            )
+
+        distancia_normalizada = float(
+            distancia_km
+        )
+
+        if distancia_normalizada < 0:
+            raise ValorInvalido(
+                "Distância não pode ser negativa."
+            )
+
+        if (
+            uf_normalizada
+            != area.uf_base
+        ):
+            return False
+
+        return (
+            distancia_normalizada
+            <= area.raio_km
+        )
+
+    raise ValorInvalido(
+        "Modalidade da área de atendimento inválida."
+    )
+
+
+
+
+

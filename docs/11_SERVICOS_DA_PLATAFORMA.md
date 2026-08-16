@@ -422,36 +422,42 @@ municipios
 
 ## 16. Proposta de Serviço
 
-A Proposta representa a resposta comercial da Empresa a uma Solicitação.
+A Proposta representa a resposta comercial de uma Empresa
+a uma Solicitação de Serviço.
 
-Deve admitir:
+O núcleo comercial implementado é dividido em:
 
-- valor;
-- prazo;
-- validade;
-- descrição técnica;
-- itens incluídos;
-- itens não incluídos;
-- garantias;
-- condições comerciais;
-- observações;
-- anexos.
+PROPOSTA_SERVICO
 
----
+codigo
+codigo_solicitacao
+codigo_empresa
+codigo_servico_ofertado_empresa
+status
+historico_de_versoes
+
+VERSAO_PROPOSTA_SERVICO
+
+numero
+valor
+prazo_execucao_dias
+validade
+descricao_tecnica
+itens_incluidos
+itens_nao_incluidos
+garantias
+condicoes_comerciais
+observacoes
 
 ## 17. Versionamento das Propostas
 
-Uma proposta já enviada não deve ser sobrescrita silenciosamente.
+Uma Proposta já enviada não deve ser sobrescrita silenciosamente.
 
 Exemplo:
 
-```text
 V1 — R$ 20.000
 V2 — R$ 19.500
 V3 — R$ 19.000
-```
-
-A versão aceita pelo Cliente deve permanecer identificável.
 
 ---
 
@@ -459,13 +465,10 @@ A versão aceita pelo Cliente deve permanecer identificável.
 
 Estado inicial:
 
-```text
 EM_ELABORACAO
-```
 
 Estados:
 
-```text
 EM_ELABORACAO
 PUBLICADA
 RECEBENDO_PROPOSTAS
@@ -474,7 +477,6 @@ ENCERRADA_COM_CONTRATACAO
 ENCERRADA_SEM_CONTRATACAO
 CANCELADA
 EXPIRADA
-```
 
 Estados terminais:
 
@@ -516,6 +518,12 @@ EXPIRADA
 `RECUSADA` representa rejeição explícita do Cliente.
 
 `NAO_SELECIONADA` representa proposta concorrente que perdeu porque outra proposta foi escolhida.
+
+### Regras implementadas da máquina
+
+A máquina de estados pertence a:
+
+app/dominio/status_proposta_servico.py
 
 ---
 
@@ -583,7 +591,6 @@ Para instalação fotovoltaica, o Orçamento Fotovoltaico existente deve ser int
 
 Fluxo conceitual:
 
-```text
 Solicitação
     ↓
 Orçamento Fotovoltaico
@@ -597,7 +604,6 @@ Projeto
 Homologação
     ↓
 Instalação
-```
 
 A integração exata com o domínio atual de Orçamentos será definida durante a implementação.
 
@@ -609,7 +615,6 @@ A Ordem de Serviço representa a execução operacional de serviços de pós-ven
 
 Estados previstos:
 
-```text
 ABERTA
 EM_TRIAGEM
 AGUARDANDO_DIAGNOSTICO
@@ -623,14 +628,11 @@ AGUARDANDO_CONFIRMACAO_CLIENTE
 EM_ANALISE_DE_CONTESTACAO
 CONCLUIDA
 CANCELADA
-```
 
 Estados terminais:
 
-```text
 CONCLUIDA
 CANCELADA
-```
 
 Nem todo serviço precisa passar por diagnóstico ou aprovação comercial.
 
@@ -642,7 +644,6 @@ Uma Ordem de Serviço poderá possuir múltiplas execuções.
 
 Cada execução poderá registrar:
 
-```text
 data
 responsavel
 tecnicos
@@ -654,16 +655,13 @@ solucao_aplicada
 materiais_utilizados
 observacoes
 resultado
-```
 
 Resultados possíveis incluem:
 
-```text
 RESOLVIDO
 PARCIALMENTE_RESOLVIDO
 NAO_RESOLVIDO
 RETORNO_NECESSARIO
-```
 
 ---
 
@@ -671,7 +669,6 @@ RETORNO_NECESSARIO
 
 O domínio deve permitir evidências como:
 
-```text
 FOTO_ANTES
 FOTO_DEPOIS
 VIDEO
@@ -680,7 +677,6 @@ MEDICAO
 RELATORIO
 COMPROVANTE
 OUTRO
-```
 
 Tipos específicos de serviço poderão exigir determinadas evidências.
 
@@ -690,25 +686,22 @@ Tipos específicos de serviço poderão exigir determinadas evidências.
 
 A execução de um serviço poderá ocorrer como:
 
-```text
 GARANTIA
 COBRADO
 CORTESIA
 CONTRATO
-```
+
 
 O status financeiro deve permanecer separado do status operacional.
 
 Exemplo de estados financeiros:
 
-```text
 NAO_APLICAVEL
 PENDENTE
 PARCIAL
 PAGO
 ATRASADO
 CANCELADO
-```
 
 ---
 
@@ -997,7 +990,8 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 - assinatura eletrônica/contratual;
 - regras de pagamento;
 - mecanismo definitivo de aditivo/orçamento complementar;
-- integração técnica exata entre `PropostaServico` e o `Orcamento` fotovoltaico existente.
+- integração técnica exata entre `PropostaServico` e o `Orcamento` fotovoltaico existente;
+- modelagem definitiva de anexos/documentos vinculados à Proposta e às suas versões comerciais.
 
 ---
 
@@ -1009,7 +1003,7 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 - [x] Serviços oferecidos pelas Empresas
 - [x] Status das entidades
 - [x] Solicitação de Serviço
-- [ ] Proposta de Serviço
+- [x] Proposta de Serviço
 - [ ] Contratação de Serviço
 - [ ] Ordem de Serviço Pós-venda
 - [ ] Privacidade e autorização de contato
@@ -1121,3 +1115,10 @@ Módulo implementado:
 app/dominio/solicitacoes_servico.py
 
 #### 40.2.6 — Proposta de Serviço
+
+Status: CONCLUÍDA.
+
+Módulos consolidados nesta etapa:
+
+app/dominio/propostas_servico.py
+app/dominio/status_proposta_servico.py

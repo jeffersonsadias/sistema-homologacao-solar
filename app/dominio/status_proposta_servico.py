@@ -18,7 +18,6 @@ faz parte da máquina de estados.
 Não utiliza input(), print() ou persistência.
 """
 
-
 STATUS_PROPOSTA_SERVICO = {
     1: "EM_ELABORACAO",
     2: "ENVIADA",
@@ -31,11 +30,9 @@ STATUS_PROPOSTA_SERVICO = {
     9: "EXPIRADA",
 }
 
-
 STATUS_INICIAL = (
     STATUS_PROPOSTA_SERVICO[1]
 )
-
 
 ESTADOS_TERMINAIS = {
     "ACEITA",
@@ -45,6 +42,10 @@ ESTADOS_TERMINAIS = {
     "EXPIRADA",
 }
 
+ESTADOS_COM_ALTERACAO_COMERCIAL = {
+    "EM_ELABORACAO",
+    "EM_REVISAO",
+}
 
 TRANSICOES_PERMITIDAS = {
     "EM_ELABORACAO": [
@@ -81,7 +82,6 @@ TRANSICOES_PERMITIDAS = {
     "RETIRADA": [],
     "EXPIRADA": [],
 }
-
 
 def obter_status(
     codigo: int,
@@ -135,3 +135,27 @@ def status_terminal(
     """
 
     return status in ESTADOS_TERMINAIS
+
+def pode_alterar_condicoes_comerciais(
+    status: str,
+) -> bool:
+    """
+    Informa se o estado atual da Proposta
+    permite trabalhar suas condições comerciais.
+
+    Apenas Propostas em EM_ELABORACAO
+    ou EM_REVISAO permitem alterações
+    comerciais.
+    """
+
+    return (
+        status
+        in ESTADOS_COM_ALTERACAO_COMERCIAL
+    )
+
+
+
+
+
+
+

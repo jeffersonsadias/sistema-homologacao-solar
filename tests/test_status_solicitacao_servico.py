@@ -5,6 +5,7 @@ from app.dominio.status_solicitacao_servico import (
     STATUS_INICIAL,
     STATUS_SOLICITACAO_SERVICO,
     obter_status,
+    pode_receber_propostas,
     status_terminal,
     status_valido,
     transicao_permitida,
@@ -352,6 +353,55 @@ class TestStatusSolicitacaoServico(
                         "PUBLICADA",
                     )
                 )
+
+    def test_recebendo_propostas_pode_receber_propostas(
+        self,
+    ):
+        """
+        Somente o estado específico de recebimento
+        deve permitir novas Propostas.
+        """
+
+        self.assertTrue(
+            pode_receber_propostas(
+                "RECEBENDO_PROPOSTAS"
+            )
+        )
+
+    def test_demais_status_nao_podem_receber_propostas(
+        self,
+    ):
+        """
+        Nenhum outro estado da Solicitação
+        deve permitir o recebimento de
+        uma nova Proposta.
+        """
+
+        status_nao_permitidos = (
+            "EM_ELABORACAO",
+            "PUBLICADA",
+            "EM_ANALISE_PELO_CLIENTE",
+            "ENCERRADA_COM_CONTRATACAO",
+            "ENCERRADA_SEM_CONTRATACAO",
+            "CANCELADA",
+            "EXPIRADA",
+            "INEXISTENTE",
+        )
+
+        for status in status_nao_permitidos:
+            with self.subTest(
+                status=status
+            ):
+                self.assertFalse(
+                    pode_receber_propostas(
+                        status
+                    )
+                )
+
+
+
+
+
 
 
 if __name__ == "__main__":

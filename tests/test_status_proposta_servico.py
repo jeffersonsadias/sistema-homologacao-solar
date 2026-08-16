@@ -1,10 +1,12 @@
 import unittest
 
 from app.dominio.status_proposta_servico import (
+    ESTADOS_COM_ALTERACAO_COMERCIAL,
     ESTADOS_TERMINAIS,
     STATUS_INICIAL,
     STATUS_PROPOSTA_SERVICO,
     obter_status,
+    pode_alterar_condicoes_comerciais,
     status_terminal,
     status_valido,
     transicao_permitida,
@@ -275,6 +277,68 @@ class TestStatusPropostaServico(
                         "EM_REVISAO",
                     )
                 )
+
+    def test_estados_com_alteracao_comercial(
+        self,
+    ):
+        esperados = {
+            "EM_ELABORACAO",
+            "EM_REVISAO",
+        }
+
+        self.assertEqual(
+            ESTADOS_COM_ALTERACAO_COMERCIAL,
+            esperados,
+        )
+
+    def test_status_permite_alteracao_comercial(
+        self,
+    ):
+        for status in (
+            "EM_ELABORACAO",
+            "EM_REVISAO",
+        ):
+            with self.subTest(
+                status=status
+            ):
+                self.assertTrue(
+                    pode_alterar_condicoes_comerciais(
+                        status
+                    )
+                )
+
+    def test_status_bloqueia_alteracao_comercial(
+        self,
+    ):
+        for status in (
+            "ENVIADA",
+            "REVISADA",
+            "ACEITA",
+            "RECUSADA",
+            "NAO_SELECIONADA",
+            "RETIRADA",
+            "EXPIRADA",
+        ):
+            with self.subTest(
+                status=status
+            ):
+                self.assertFalse(
+                    pode_alterar_condicoes_comerciais(
+                        status
+                    )
+                )
+
+    def test_status_inexistente_nao_permite_alteracao_comercial(
+        self,
+    ):
+        self.assertFalse(
+            pode_alterar_condicoes_comerciais(
+                "INEXISTENTE"
+            )
+        )
+
+
+
 
 
 if __name__ == "__main__":

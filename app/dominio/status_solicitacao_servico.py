@@ -130,3 +130,19 @@ def status_terminal(
     """
 
     return status in ESTADOS_TERMINAIS
+
+def pode_receber_propostas(
+    status: str,
+) -> bool:
+    """
+    Informa se uma Solicitação de Serviço
+    está apta a receber novas Propostas.
+
+    Somente Solicitações em
+    RECEBENDO_PROPOSTAS podem receber
+    novas Propostas.
+    """
+
+    return status == "RECEBENDO_PROPOSTAS"
+
+

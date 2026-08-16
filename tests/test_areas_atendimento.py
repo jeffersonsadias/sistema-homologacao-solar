@@ -3,6 +3,7 @@ import unittest
 from app.dominio.areas_atendimento import (
     AreaAtendimento,
     ModalidadeAreaAtendimento,
+    area_atende_localidade,
     criar_area_atendimento,
 )
 
@@ -284,6 +285,237 @@ class TestAreasAtendimentoDominio(
             criar_area_atendimento(
                 modalidade="INEXISTENTE",
             )
+
+    def test_area_nacional_atende_localidade(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="NACIONAL",
+        )
+
+        resultado = area_atende_localidade(
+            area,
+            municipio="Caetité",
+            uf="BA",
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_area_municipios_atende_municipio_configurado(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="MUNICIPIOS",
+            municipios=[
+                "Caetité",
+                "Guanambi",
+            ],
+        )
+
+        resultado = area_atende_localidade(
+            area,
+            municipio="Guanambi",
+            uf="BA",
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_area_municipios_ignora_maiusculas_minusculas(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="MUNICIPIOS",
+            municipios=[
+                "Caetité",
+            ],
+        )
+
+        resultado = area_atende_localidade(
+            area,
+            municipio="CAETITÉ",
+            uf="BA",
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_area_municipios_rejeita_municipio_nao_configurado(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="MUNICIPIOS",
+            municipios=[
+                "Caetité",
+                "Guanambi",
+            ],
+        )
+
+        resultado = area_atende_localidade(
+            area,
+            municipio="Brumado",
+            uf="BA",
+        )
+
+        self.assertFalse(
+            resultado
+        )
+
+    def test_area_raio_atende_distancia_dentro_limite(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="RAIO",
+            municipio_base="Caetité",
+            uf_base="BA",
+            raio_km=150,
+        )
+
+        resultado = area_atende_localidade(
+            area,
+            municipio="Guanambi",
+            uf="BA",
+            distancia_km=100,
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_area_raio_atende_distancia_no_limite(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="RAIO",
+            municipio_base="Caetité",
+            uf_base="BA",
+            raio_km=150,
+        )
+
+        resultado = area_atende_localidade(
+            area,
+            municipio="Guanambi",
+            uf="BA",
+            distancia_km=150,
+        )
+
+        self.assertTrue(
+            resultado
+        )
+
+    def test_area_raio_rejeita_distancia_fora_limite(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="RAIO",
+            municipio_base="Caetité",
+            uf_base="BA",
+            raio_km=150,
+        )
+
+        resultado = area_atende_localidade(
+            area,
+            municipio="Salvador",
+            uf="BA",
+            distancia_km=600,
+        )
+
+        self.assertFalse(
+            resultado
+        )
+
+    def test_area_raio_exige_distancia(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="RAIO",
+            municipio_base="Caetité",
+            uf_base="BA",
+            raio_km=150,
+        )
+
+        with self.assertRaises(
+            DadosObrigatoriosAusentes
+        ):
+            area_atende_localidade(
+                area,
+                municipio="Guanambi",
+                uf="BA",
+            )
+
+    def test_distancia_deve_ser_numerica(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="RAIO",
+            municipio_base="Caetité",
+            uf_base="BA",
+            raio_km=150,
+        )
+
+        for distancia in (
+            "100",
+            True,
+        ):
+            with self.subTest(
+                distancia=distancia
+            ):
+                with self.assertRaises(
+                    ValorInvalido
+                ):
+                    area_atende_localidade(
+                        area,
+                        municipio="Guanambi",
+                        uf="BA",
+                        distancia_km=distancia,
+                    )
+
+    def test_distancia_nao_pode_ser_negativa(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="RAIO",
+            municipio_base="Caetité",
+            uf_base="BA",
+            raio_km=150,
+        )
+
+        with self.assertRaises(
+            ValorInvalido
+        ):
+            area_atende_localidade(
+                area,
+                municipio="Guanambi",
+                uf="BA",
+                distancia_km=-1,
+            )
+
+    def test_area_raio_rejeita_uf_diferente(
+        self,
+    ):
+        area = criar_area_atendimento(
+            modalidade="RAIO",
+            municipio_base="Caetité",
+            uf_base="BA",
+            raio_km=150,
+        )
+
+        resultado = area_atende_localidade(
+            area,
+            municipio="Localidade",
+            uf="MG",
+            distancia_km=100,
+        )
+
+        self.assertFalse(
+            resultado
+        )
+
+
 
 
 if __name__ == "__main__":
