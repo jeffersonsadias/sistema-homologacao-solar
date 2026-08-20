@@ -554,30 +554,25 @@ O aceite deve:
 
 ## 21. Contratação de Serviço
 
-A Contratação nasce após o aceite.
+A Contratação representa a formalização comercial originada
+de uma versão aceita de uma Proposta de Serviço.
 
-Estado inicial:
+O agregado implementado é composto por:
 
-EM_FORMALIZACAO
 
-Estados:
+CONTRATACAO_SERVICO
 
-EM_FORMALIZACAO
-CONFIRMADA
-PROCESSO_GERADO
-EM_ANDAMENTO
-CONCLUIDA
-CANCELADA
-EXPIRADA
-
-A Contratação deve preservar um snapshot das condições aceitas:
-
+codigo
+codigo_solicitacao
+codigo_cliente
+codigo_tipo_servico
+codigo_empresa
+codigo_servico_ofertado_empresa
 codigo_proposta
-versao_proposta_aceita
-valor_contratado
-prazo_contratado
-garantia_contratada
-condicoes_contratadas
+snapshot
+data_limite_formalizacao
+processo_operacional
+status
 
 ---
 
@@ -709,18 +704,15 @@ CANCELADO
 
 Devem ser diferenciadas:
 
-```text
+
 GARANTIA_ORIGINAL
 GARANTIA_GERADA_PELO_SERVICO
-```
 
 Também deve ser identificado o responsável:
 
-```text
 EMPRESA
 FABRICANTE
 TERCEIRO
-```
 
 Uma nova garantia gerada por uma manutenção não altera retroativamente a garantia original da instalação.
 
@@ -1004,7 +996,7 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 - [x] Status das entidades
 - [x] Solicitação de Serviço
 - [x] Proposta de Serviço
-- [ ] Contratação de Serviço
+- [x] Contratação de Serviço
 - [ ] Ordem de Serviço Pós-venda
 - [ ] Privacidade e autorização de contato
 - [ ] Movimentações e auditoria
@@ -1122,3 +1114,13 @@ Módulos consolidados nesta etapa:
 
 app/dominio/propostas_servico.py
 app/dominio/status_proposta_servico.py
+
+#### 40.2.7 — Contratação de Serviço
+
+Status: CONCLUÍDA.
+
+Módulos consolidados nesta etapa:
+
+app/dominio/contratacoes_servico.py
+app/dominio/status_contratacao_servico.py
+
