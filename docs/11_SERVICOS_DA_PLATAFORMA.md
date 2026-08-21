@@ -606,39 +606,29 @@ A integração exata com o domínio atual de Orçamentos será definida durante 
 
 ## 23. Ordem de Serviço Pós-venda
 
-A Ordem de Serviço representa a execução operacional de serviços de pós-venda.
+A Ordem de Serviço Pós-venda representa o agregado operacional
+responsável pela execução de um serviço de pós-venda originado
+de uma Contratação de Serviço.
 
-Estados previstos:
+Módulo implementado:
 
-ABERTA
-EM_TRIAGEM
-AGUARDANDO_DIAGNOSTICO
-AGUARDANDO_APROVACAO
-AGUARDANDO_AGENDAMENTO
-AGENDADA
-EM_EXECUCAO
-AGUARDANDO_PECA
-RETORNO_NECESSARIO
-AGUARDANDO_CONFIRMACAO_CLIENTE
-EM_ANALISE_DE_CONTESTACAO
-CONCLUIDA
-CANCELADA
-
-Estados terminais:
-
-CONCLUIDA
-CANCELADA
-
-Nem todo serviço precisa passar por diagnóstico ou aprovação comercial.
+app/dominio/ordens_servico_pos_venda.py
 
 ---
 
 ## 24. Execuções e visitas
 
-Uma Ordem de Serviço poderá possuir múltiplas execuções.
+Uma Ordem de Serviço poderá possuir múltiplas execuções ou
+visitas técnicas.
 
-Cada execução poderá registrar:
+Cada execução é representada por um registro imutável associado
+ao histórico da Ordem.
 
+Estrutura implementada:
+
+EXECUCAO_ORDEM_SERVICO
+
+numero
 data
 responsavel
 tecnicos
@@ -650,13 +640,6 @@ solucao_aplicada
 materiais_utilizados
 observacoes
 resultado
-
-Resultados possíveis incluem:
-
-RESOLVIDO
-PARCIALMENTE_RESOLVIDO
-NAO_RESOLVIDO
-RETORNO_NECESSARIO
 
 ---
 
@@ -724,15 +707,11 @@ Quando surgir trabalho adicional durante a execução, o valor contratado origin
 
 Deve ser utilizado futuramente um mecanismo como:
 
-```text
 ADITIVO_SERVICO
-```
 
 ou:
 
-```text
 ORCAMENTO_COMPLEMENTAR
-```
 
 O Cliente deve aprovar o novo escopo antes da execução adicional quando houver cobrança.
 
@@ -740,30 +719,12 @@ O Cliente deve aprovar o novo escopo antes da execução adicional quando houver
 
 ## 29. Encerramento da Ordem de Serviço
 
-A Empresa finaliza tecnicamente o serviço.
+O encerramento operacional da Ordem de Serviço depende do
+resultado técnico e da manifestação do Cliente.
 
-Depois:
+Quando uma execução é registrada como:
 
-```text
-EM_EXECUCAO
-    ↓
-AGUARDANDO_CONFIRMACAO_CLIENTE
-```
-
-O Cliente poderá:
-
-- confirmar;
-- contestar.
-
-Se contestar:
-
-```text
-EM_ANALISE_DE_CONTESTACAO
-```
-
-A análise poderá gerar retorno técnico.
-
-A ausência de manifestação do Cliente poderá futuramente gerar conclusão automática após prazo configurado, sempre com registro em histórico.
+RESOLVIDO
 
 ---
 
@@ -801,7 +762,6 @@ Devem ser preservados eventos de:
 
 Movimentações devem registrar, quando aplicável:
 
-```text
 tipo_evento
 data_hora
 ator_tipo
@@ -811,16 +771,13 @@ status_novo
 descricao
 dados_anteriores
 dados_novos
-```
 
 Tipos de ator:
 
-```text
 CLIENTE
 EMPRESA
 PLATAFORMA
 SISTEMA
-```
 
 ---
 
@@ -830,7 +787,6 @@ A liberação de contato deve possuir rastreabilidade própria.
 
 Conceitualmente:
 
-```text
 AUTORIZACAO_CONTATO
 
 codigo
@@ -842,14 +798,11 @@ motivo
 data_hora_liberacao
 ativo
 data_revogacao
-```
 
 Motivos inicialmente previstos:
 
-```text
 SOLICITACAO_DIRETA
 PROPOSTA_ACEITA
-```
 
 ---
 
@@ -874,13 +827,11 @@ Devem ser encerradas, canceladas ou inativadas conforme as regras do domínio.
 
 Histórico de domínio e notificação são responsabilidades distintas.
 
-```text
 MOVIMENTACAO
 → fato permanente
 
 NOTIFICACAO
 → comunicação ao usuário
-```
 
 Uma falha de notificação não pode apagar ou invalidar o acontecimento de domínio.
 
@@ -890,7 +841,6 @@ Uma falha de notificação não pode apagar ou invalidar o acontecimento de dom�
 
 Ordem inicial prevista para implementação:
 
-```text
 app/dominio/tipos_servico.py
 app/dominio/areas_atendimento.py
 app/dominio/servicos_empresa.py
@@ -907,7 +857,6 @@ app/dominio/ordens_servico_pos_venda.py
 
 app/dominio/privacidade_servicos.py
 app/dominio/movimentacoes_servicos.py
-```
 
 A coordenação entre agregados será definida após a implementação das responsabilidades locais.
 
@@ -997,7 +946,7 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 - [x] Solicitação de Serviço
 - [x] Proposta de Serviço
 - [x] Contratação de Serviço
-- [ ] Ordem de Serviço Pós-venda
+- [x] Ordem de Serviço Pós-venda
 - [ ] Privacidade e autorização de contato
 - [ ] Movimentações e auditoria
 - [ ] Coordenação entre agregados
@@ -1123,4 +1072,14 @@ Módulos consolidados nesta etapa:
 
 app/dominio/contratacoes_servico.py
 app/dominio/status_contratacao_servico.py
+
+
+#### 40.2.8 — Ordem de Serviço Pós-venda
+
+Status: CONCLUÍDA.
+
+Módulos consolidados nesta etapa:
+
+app/dominio/ordens_servico_pos_venda.py
+app/dominio/status_ordem_servico.py
 
