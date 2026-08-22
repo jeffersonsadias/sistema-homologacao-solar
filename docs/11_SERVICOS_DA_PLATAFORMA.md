@@ -748,36 +748,13 @@ A avaliação deve estar vinculada a uma Ordem de Serviço ou processo efetivame
 
 Mudanças relevantes não devem existir apenas como estado atual.
 
-Devem ser preservados eventos de:
+Foi implementado um domínio próprio de Movimentações para
+representar fatos permanentes ocorridos no ecossistema de
+Serviços da Plataforma.
 
-- Solicitação;
-- Proposta;
-- Contratação;
-- Ordem de Serviço;
-- Garantia;
-- autorização de contato;
-- execução;
-- cancelamento;
-- alterações automáticas do sistema.
+Módulo implementado:
 
-Movimentações devem registrar, quando aplicável:
-
-tipo_evento
-data_hora
-ator_tipo
-ator_codigo
-status_anterior
-status_novo
-descricao
-dados_anteriores
-dados_novos
-
-Tipos de ator:
-
-CLIENTE
-EMPRESA
-PLATAFORMA
-SISTEMA
+app/dominio/movimentacoes_servicos.py
 
 ---
 
@@ -934,7 +911,7 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 - [x] Contratação de Serviço
 - [x] Ordem de Serviço Pós-venda
 - [x] Privacidade e autorização de contato
-- [ ] Movimentações e auditoria
+- [x] Movimentações e auditoria
 - [ ] Coordenação entre agregados
 
 ### 39.2 — Persistência
@@ -1077,7 +1054,13 @@ Módulo consolidado nesta etapa:
 
 app/dominio/privacidade_servicos.py
 
+#### 40.2.10 — Movimentações e auditoria
 
+Status: CONCLUÍDA.
+
+Módulo consolidado nesta etapa:
+
+app/dominio/movimentacoes_servicos.py
 
 
 
