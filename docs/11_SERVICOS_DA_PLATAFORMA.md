@@ -294,6 +294,18 @@ ultima_limpeza
 
 ## 11. Privacidade comercial
 
+A privacidade comercial dos Serviços da Plataforma é uma regra
+explícita de domínio.
+
+A simples existência dos dados de contato do Cliente não
+significa que uma Empresa possua autorização para acessá-los.
+
+A política implementada separa:
+
+dados do Cliente
+≠
+permissão de acesso aos dados
+
 ### 11.1 Nome do Cliente
 
 O nome do Cliente é visível tanto em solicitações diretas quanto abertas.
@@ -302,22 +314,18 @@ O nome do Cliente é visível tanto em solicitações diretas quanto abertas.
 
 Quando o Cliente envia uma solicitação diretamente para uma Empresa específica:
 
-```text
 Nome       → visível
 Telefone   → visível para a Empresa destinatária
 E-mail     → visível para a Empresa destinatária
-```
 
 ### 11.3 Solicitação aberta
 
 Quando o Cliente publica uma solicitação no marketplace:
 
-```text
 Nome       → visível
 Telefone   → oculto
 E-mail     → oculto
 WhatsApp   → oculto
-```
 
 A negociação deverá ocorrer dentro da plataforma.
 
@@ -325,13 +333,11 @@ A negociação deverá ocorrer dentro da plataforma.
 
 Quando uma proposta de uma solicitação aberta for aceita:
 
-```text
 Empresa vencedora
 → recebe autorização para acessar o contato
 
 Demais Empresas
 → continuam sem acesso
-```
 
 A autorização deve ser específica para Cliente + Empresa + Solicitação/Contratação.
 
@@ -363,12 +369,10 @@ Solicitações abertas devem permitir comunicação interna entre Cliente e cada
 
 Cada Empresa possui uma conversa independente.
 
-```text
 Solicitação
 ├── Conversa Empresa A
 ├── Conversa Empresa B
 └── Conversa Empresa C
-```
 
 Uma Empresa não pode acessar a conversa de outra.
 
@@ -380,13 +384,11 @@ O sistema deverá permanecer preparado para moderação de compartilhamento de c
 
 Uma Empresa é elegível para uma Solicitação aberta quando, no mínimo:
 
-```text
 empresa_ativa
 AND servico_ativo
 AND participa_marketplace
 AND area_atendimento_compativel
 AND cadastro_habilitado
-```
 
 Elegibilidade, ranking, visibilidade e notificação são conceitos distintos.
 
@@ -394,11 +396,9 @@ Elegibilidade, ranking, visibilidade e notificação são conceitos distintos.
 
 Para solicitação direta:
 
-```text
 empresa_ativa
 AND servico_ativo
 AND aceita_solicitacao_direta
-```
 
 A área de atendimento não precisa necessariamente bloquear uma solicitação direta.
 
@@ -783,26 +783,12 @@ SISTEMA
 
 ## 32. Autorização de contato
 
-A liberação de contato deve possuir rastreabilidade própria.
+A liberação de dados de contato possui entidade própria de
+domínio e rastreabilidade independente.
 
-Conceitualmente:
+Módulo implementado:
 
-AUTORIZACAO_CONTATO
-
-codigo
-codigo_cliente
-codigo_empresa
-codigo_solicitacao
-codigo_contratacao
-motivo
-data_hora_liberacao
-ativo
-data_revogacao
-
-Motivos inicialmente previstos:
-
-SOLICITACAO_DIRETA
-PROPOSTA_ACEITA
+app/dominio/privacidade_servicos.py
 
 ---
 
@@ -947,7 +933,7 @@ Os seguintes pontos permanecem para refinamento durante implementação ou fases
 - [x] Proposta de Serviço
 - [x] Contratação de Serviço
 - [x] Ordem de Serviço Pós-venda
-- [ ] Privacidade e autorização de contato
+- [x] Privacidade e autorização de contato
 - [ ] Movimentações e auditoria
 - [ ] Coordenação entre agregados
 
@@ -1082,4 +1068,16 @@ Módulos consolidados nesta etapa:
 
 app/dominio/ordens_servico_pos_venda.py
 app/dominio/status_ordem_servico.py
+
+#### 40.2.9 — Privacidade e autorização de contato
+
+Status: CONCLUÍDA.
+
+Módulo consolidado nesta etapa:
+
+app/dominio/privacidade_servicos.py
+
+
+
+
 
